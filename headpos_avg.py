@@ -31,23 +31,29 @@ else:
     sys.exit()
     
 #%%    
-def headpos_avenger(filename, folder=[]):
+def headpos_avg(filename, folder=[], overwrite=False):
     
     
-    fname_pos = '/archive/20055_parkinson_motor/MEG/NatMEG_0406/170420/headpos/rest_ec_1_headpos.pos'
-    fname_fif = '/archive/20055_parkinson_motor/MEG/NatMEG_0406/170420/rest_ec_1_quat.fif'
+#    fname_pos = '/archive/20055_parkinson_motor/MEG/NatMEG_0406/170420/headpos/rest_ec_1_headpos.pos'
+#    fname_fif = '/archive/20055_parkinson_motor/MEG/NatMEG_0406/170420/rest_ec_1_quat.fif'
 
 
-    if not folder:
+    if not folder:                     # [!] Match up with bash script !
         rawdir = getcwd()
     else:
         rawdir = folder
 
-
-    pos = read_head_pos(fname_pos)                    #op.join(rawdir, filename))
+    fname = filename.split('/')[-1]
     
-    plot_head_positions(pos, mode='traces')
-    plot_head_positions(pos, mode='field')
+    
+    
+#    pos = read_head_pos(fname_pos)                    #op.join(rawdir, filename))   
+#    plot_head_positions(pos, mode='traces')
+#    plot_head_positions(pos, mode='field')
+        
+
+# FIND FIF FILES...        
+        
 
     raw = Raw(fname_fif, preload=True).pick_types(meg=False, chpi=True)
         
@@ -92,10 +98,12 @@ def headpos_avenger(filename, folder=[]):
     rawT = raw_meg.copy()
     rawT.info['dev_head_t']['trans'] = H_mean.copy()            # mean_trans.copy()
     
-    fig = plot_alignment(raw_meg.info, trans=None, dig=True, eeg=False,
-                         surfaces=[], meg=True, coord_frame='meg')
-    plot_alignment(rawT.info, trans=None, dig=True, eeg=False,
-                         surfaces=[], meg=True, coord_frame='meg', fig=fig)
+    write_trans()
+    
+#    fig = plot_alignment(raw_meg.info, trans=None, dig=True, eeg=False,
+#                         surfaces=[], meg=True, coord_frame='meg')
+#    plot_alignment(rawT.info, trans=None, dig=True, eeg=False,
+#                         surfaces=[], meg=True, coord_frame='meg', fig=fig)
     
     
 ##    # Change to subject dir                                       # Combining several files will be added later
