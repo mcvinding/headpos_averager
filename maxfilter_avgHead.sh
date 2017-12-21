@@ -1,53 +1,71 @@
 #!/bin/bash
 
 ## Script for automatic maxfilter processing where movement correction is done by shifting to
-## the average headposition across the session.
+## the average headposition, calculated from continous head position estimation in MaxFilter,
+## across the session.
 ##
-## Run SSS movement estimation
-## Run Python or matlab scripts to get average position from output
-## Save in -trans file or update in SSS file
-## Re-run maxfilter with correct settings (tSSS, movecomp, etc.) and transform to avg. headpos.
+## Procedure:
+## 1) Run SSS movement estimation
+## 2) Run Python or matlab scripts to get average position from output
+## 3) Save in -trans file or update in SSS file
+## 4) Re-run maxfilter with correct settings (tSSS, movecomp, etc.) and transform to avg. headpos.
 ##
-## by Mikkel C. Vinding (2017-12-08) and Lau M. Andersen (2016-04-12)
-## for question contact: mikkel.vinding@ki.se
+## Mikkel C. Vinding (2017) and Lau M. Andersen (2016-2017)
+##
+## No warraty guarateed. This is a wrapper for calling Neuromag MaxFilter within the NatMEG (www.natmeg.se) infrastructure. Neuromag MaxFilter is 
+## a comercial software. For reference read the MaxFilter Manual.
+##
+## For question contact: mikkel.vinding@ki.se
 
 ###########################################################################################################################################################################
 # TO DO:
 # - Run SSS movement estimation
-# - Run Python or matlab scripts to get average position from output [Mot present on this PC yet - 2017-12-08]
+# - Run Python or matlab scripts to get average position from output [Not present on this PC yet - 2017-12-21]
 # - - Save in -trans file or update in SSS file
 # - re-run maxfilter with correct settings (tSSS, movecomp, etc.) and transform to avg. headpos.
 #
 # - Read in more than one file (e.g. for recordings over 2GB)
+# - option to use mean or median to estimate headpos
+# - option to use continous or initial head pos
 #
 
 #############################################################################################################################################################################################################################################################
-## These are the ONLY parameters you should change (as according to your wishes)
+## These are the ONLY parameters you should change (as according to your wishes). For more info we recommend reading the MaxFilter Manual.
+## NB! Do not use spaces between "equal to" signs.
 #############################################################################################################################################################################################################################################################
 
-project=parkinson_motor    ## the name of your project in /neuro/data/sinuhe
-correlation=0.98
-autobad=on # on/off
-tsss_default=on # on/off (if off does Signal Space Separation, if on does temporal Signal Space Separation)
-cal=/neuro/databases/sss/sss_cal.dat
-ctc=/neuro/databases/ctc/ct_sparse.fif
+## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
+project=working_memory    	# The name of your project in /neuro/data/sinuhe
+trans_conditions=( 'rest_eo' 'rest_ec' 'tap' 'pam' 'singlefinger' )
+trans_option=continous 		# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files? [NOT YET IMPLEMENTED]
+trans_type=median 		# mean/median, method to estimate "average" head position. [NOT YET IMPLEMENTED]
+keep_headposfiles=yes 		# yes/no, would you like to keep the files used to calculate the avergae head position?
+
+## STEP 2: Put the names of your empty room files (files in this array won't have "movecomp" applied) (no commas between files and leave spaces between first and last brackets)
+empty_room_files=( 'empty_room1_before.fif' 'empty_room1_after.fif' 'empty_room2_before.fif' 'empty_room2_after.fif' )
+
+## STEP 3: Select MaxFilter options.
+autobad=on 			# Options: on/off
+tsss_default=on 		# on/off (if off does Signal Space Separation, if on does temporal Signal Space Separation)
+correlation=0.98 		# tSSS correlation rejection limit (default is 0.98)
 movecomp_default=on # on/off
 
-trans_option='on' # on/off NB! See below
-#transformation_to=default ## default is "default", but you can supply your own file 
-trans_conditions=( 'rest_eo' 'rest_ec' 'tap' 'pam' 'singlefinger' )
-calc_avg_headpos='yes' #yes/no
-empty_room_files=( 'empty_room1_before.fif' 'empty_room1_after.fif' 'empty_room2_before.fif' 'empty_room2_after.fif' ) #'empty_room_12_after.fif' 'empty_room_12_before.fif' ) ## put the names of your empty room files (consistent naming makes it a lot easier) (files in this array won't have "movecomp" applied) (no commas between files and leave spaces between first and last brackets)
-headpos=off # on/off ## if "on", no movement compensation (movecomp is automatically turned off, even if specified "on")
-force=off # on/off, "forces" the command to ignore warnings and errors and OVERWRITES if a file already exists with that name
+#############################################################################################################################################################################################################################################################
+## Default initial settings for headposition estimation (only change if you are certain that is what you want to do)
+#############################################################################################################################################################################################################################################################
 
+#trans_option='on' # on/off NB! See below
+#transformation_to=default ## default is "default", but you can supply your own file 
+calc_avg_headpos='yes' #yes/no
+#headpos=off # on/off ## if "on", no movement compensation (movecomp is automatically turned off, even if specified "on")
+force=off # on/off, "forces" the command to ignore warnings and errors and OVERWRITES if a file already exists with that name
 downsampling=off # on/off, downsamples the data with the factor below
 downsampling_factor=4 # must be an INTEGER greater than 1, if "downsampling = on". If "downsampling = off", this argument is ignored
 sss_files=( 'only_apply_sss_to_this_file.fif' ) ## put the names of files you only want SSS on (can be used if want SSS on a subset of files, but tSSS on the rest)
 apply_linefreq=off ## on/off
 linefreq_Hz=50 ## set your own line freq filtering (ignored if above is off),
-
-
+cal=/neuro/databases/sss/sss_cal.dat
+ctc=/neuro/databases/ctc/ct_sparse.fif
 
 #############################################################################################################################################################################################################################################################
 #############################################################################################################################################################################################################################################################
@@ -61,7 +79,7 @@ cd $data_path
 cd $project/MEG
 
 #############################################################################################################################################################################################################################################################
-## Qbort if project folder doesn't exist
+## Abort if project folder doesn't exist and check if tran and pos folders exist
 #############################################################################################################################################################################################################################################################
 
 if [ $? -ne 0 ]  
@@ -70,10 +88,13 @@ then
 	exit 1
 fi
 
+
 #############################################################################################################################################################################################################################################################
-## create set_movecomp function (sets movecomp according to wishes above and abort if set incorrectly, this is a function such that it can be changed throughout the script if empty_room files are found)
+## Setup the varios MaxFilter option for the real run
 #############################################################################################################################################################################################################################################################
 
+#############################################################################################################################################################################################################################################################
+## create set_movecomp function (sets movecomp according to wishes above and abort if set incorrectly, this is a function such that it can be changed throughout the script if empty_room files are found)
 set_movecomp () 
 {
 
@@ -92,8 +113,6 @@ set_movecomp ()
 
 #############################################################################################################################################################################################################################################################
 ## create set_tsss function
-#############################################################################################################################################################################################################################################################
-
 set_tsss ()
 {
 	if [ "$1" = 'on' ]
@@ -110,8 +129,6 @@ set_tsss ()
 
 #############################################################################################################################################################################################################################################################
 ## set linefreq according to wishes above and abort if set incorrectly
-#############################################################################################################################################################################################################################################################
-
 if [ "$apply_linefreq" = 'on' ]
 then
 	linefreq="-linefreq $linefreq_Hz"
@@ -125,7 +142,7 @@ fi
 	
 
 #############################################################################################################################################################################################################################################################
-## set trans according to wishes above and abort if set incorrectly
+## set trans according to wishes above and abort if set incorrectly [REMOVE?]
 #############################################################################################################################################################################################################################################################
 
 #if [ "$trans_option" = 'on' ]
@@ -141,19 +158,19 @@ fi
 #fi
 
 #############################################################################################################################################################################################################################################################
-## set headpos (head position)  according to wishes above and abort if set incorrectly
+## set headpos (head position)  according to wishes above and abort if set incorrectly [REMOVE?]
 #############################################################################################################################################################################################################################################################
 
-if [ "$headpos" = 'on' ]
-then
-	headpos=-headpos
-	headpos_string=_quat
-elif [ "$headpos" = "off" ]
-then
-	headpos=
-	headpos_string=
-else echo 'faulty "headpos" setting (must be on or off)'; exit 1;
-fi
+#if [ "$headpos" = 'on' ]
+#then
+#	headpos=-headpos
+#	headpos_string=_quat
+#elif [ "$headpos" = "off" ]
+#then
+#	headpos=
+#	headpos_string=
+#else echo 'faulty "headpos" setting (must be on or off)'; exit 1;
+#fi
 
 #############################################################################################################################################################################################################################################################
 ## set <force> parameter according to wishes above and abort if set incorrectly
@@ -205,50 +222,95 @@ do
 	
 	cd $data_path/$project/MEG/$subject_and_date/
 
+	# create log file directory if it doesn't already exist
 	if [ ! -d log ]; then
-		echo "not a dir"
-		mkdir log 		## create log file directory if it doesn't already exist
-	else echo "a dir"
+		echo "Creating folder for MaxFilter logfiles"
+		mkdir log 		#
 	fi
 
-	if [ ! -d quat ]; then
+	## create file directory for quad files if it doesn't already exist
+	if [ ! -d quat_files ]; then
 		echo 'quat folder does not exist. Will make one for $subject_and_date'
-		mkdir quat_files 		## create file directory for quad files if it doesn't already exist
+		mkdir quat_files 		
 		mkdir headpos
 	else echo "a dir"
 	fi
-	####################################################################################################################################################################################################################################################
-	## loop over files in subject folders	####################################################################################################################################################################################################################################################
-	
-	for filename in `ls -p | grep -v / `;
-	do
-		echo -----------------------------------------------------------
-		echo "Now running initiat mafilter process to get head movement"
-		echo -----------------------------------------------------------
+
+####################################################################################################################################################################################################################################################
+	## Get the average head position	####################################################################################################################################################################################################################################################
+
+	if [ "$trans_option=" = 'initial' ]; then
+		echo "Will use the average of initial head position fit"
+		for condition in ${trans_conditions[*]}
+		do
+#			echo $condition
+			source /home/natmeg/data_scripts/avg_headpos/avgHeadPos.sh $condition ### TEST IF MULTIPLE FILES ARE SUPPORTET. RENAME FILES
+		done
+	elif [ "$trans_option=" = 'continous' ];
+		echo "Will use the average of continous head position"
+		echo "Now running MaxFilter to get continous head position..."
+
 
 		for prefx in ${trans_conditions[*]}
 		do
-			fname=$( find ./quat -type f -print | grep $prefix)
-			echo $filename
+			fname=$( find ./quat_files -type f -print | grep $prefix)
+			echo $fname
+
+		done
+
+	fi
+
+	exit 1
+		
+		for condition in ${trans_conditions[*]}
+		do
+
+			# Run maxfilter
+#			/neuro/bin/util/maxfilter -f ${fname} -o ./quat_files/$quat_fname -headpos -hp ./headpos/$pos_fname 
+
+#			source /home/natmeg/data_scripts/avg_headpos/headpos_avg.sh $condition
+
+
+
+
+	fi
+
+	####################################################################################################################################################################################################################################################
+	## loop over files in subject folders	####################################################################################################################################################################################################################################################
+	
+
+
+
+	for filename in `ls -p | grep -v / `;
+	do
+		echo ----------------------------------------------------------------------
+		echo "Now running initiat MaxFilter process to get continous head position"
+		echo ----------------------------------------------------------------------
+
+		for prefx in ${trans_conditions[*]}
+		do
+			fname=$( find ./quat_files -type f -print | grep $prefix)
+			echo $fname
 		############################################################################################################################################################################################################################################
 		## Run initial maxfilter to estimate continous head position		############################################################################################################################################################################################################################################
 		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
-		pos_file=${filename:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
-		quat_file=${filename:0:$length}_quat.fif 	# the name of the quat output file
+		pos_fname=${filename:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
+		quat_fname=${filename:0:$length}_quat.fif 	# the name of the quat output file
 
-		/neuro/bin/util/maxfilter -f ${filename} -o ./quat_files/$quat_file -headpos -hp ./headpos/$pos_file #This will make output files for all files including spilt files. This has to be taken into account.
+		#This will make output files for all files including spilt files. This has to be taken into account.
+		/neuro/bin/util/maxfilter -f ${fname} -o ./quat_files/$quat_fname -headpos -hp ./headpos/$pos_fname 
 
 
-		if [ "$calc_avg_headpos" = 'yes' ]; then
-			for condition in ${trans_conditions[*]}
-			do
-#				echo $condition
-				source /home/natmeg/data_scripts/avg_headpos/avgHeadMove.sh $condition  # Here we need to know if it need to get all filenames or if MNE can handle that!
-			done
+		for condition in ${trans_conditions[*]}
+		do
+#			echo $condition
+			source /home/natmeg/data_scripts/avg_headpos/avgHeadMove.sh $condition  
+			# Here we need to know if it need to get all filenames or if MNE can handle that! 
+		done
 		fi
 
 		############################################################################################################################################################################################################################################
-		## check whether file is in the empty_room_files array and change movement compensation to off is so, otherwise use the movecomp_default setting 		############################################################################################################################################################################################################################################
+		## check whether file is in the empty_room_files array and change movement compensation to off is so, otherwise use the movecomp_default setting 	############################################################################################################################################################################################################################################
 		
 		if [ $movecomp_default = 'on' ]
 		then
@@ -330,11 +392,6 @@ do
 
 		output_file=${filename:0:$length}${movecomp_string}${trans_string}${headpos_string}${linefreq_string}${ds_string}${tsss_string}.fif 
 		echo $output_file
-
-############################################################################################################################################################################################################################################
-		## Initial maxfilter to get estimate of headposition ############################################################################################################################################################################################################		
-
-
 		############################################################################################################################################################################################################################################
 		## the actual maxfilter commands ############################################################################################################################################################################################################
 		
