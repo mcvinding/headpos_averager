@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Sep 15 13:39:48 2016
-@author: mikkel
+@author: mikkel, 2016-2017
 Functions for creating average head positions of initial head position from several
 files, to feed to MaxFilter. This script is build from script by Chris Bailey (cjb@cfin.au.dk)
 """
@@ -27,12 +27,31 @@ else:
     print('mne is not present')
     sys.exit()
 
-#%% Function 
+#%% Get sys vars 
 condi = sys.argv[1]
 rawdir = getcwd()
 
-def avg_headpos(condition, folder=[]):
-    
+#%% Main function
+def avg_headpos(condition=[], folder=[]):
+    """
+    Write the average head position based of the initial fit of several 
+    independent  files and save to a trans fif file
+
+    Parameters
+    ----------
+    condition : str
+        String containing part of common filename, e.g. "task" for files 
+        task_a.fif, task_b.fif, etc. Consistent naiming of files is mandatory! 
+        If no condition is provided, it will average all files in folder.
+    folder : str
+        Path to input files. Default = current dir.
+
+    Returns
+    -------
+    None
+        
+    """
+        
     if not folder:
         rawdir = getcwd()
     else:
@@ -41,9 +60,7 @@ def avg_headpos(condition, folder=[]):
     # Change to subject dir     
     if not condition:
         files2combine = listdir(rawdir)
-    #    print('Using all files in %s' % rawdir)
-    #elif isinstance(condition,basestring):
-    #    files2combine = glob.glob('%s*' % condition)
+        print('Using all files in %s' % rawdir)
     else:
         files2combine = glob.glob('%s*' % condition)
     
@@ -51,8 +68,11 @@ def avg_headpos(condition, folder=[]):
         print('No files called \"%s\" found in %s' % (condition, rawdir))
         return
     elif len(files2combine) < 2:
-        raise RuntimeError('Only one file, please check!')
+        raise RuntimeError('Only one file, please check!')                      # [!!!] should it just copy the initial headpos?
     
+    files2combine = [f for f in files2combine if '.fif' in f]               # Make sure only fif files
+    files2combine.sort()
+
     print('Files used for average head pos:')    
     for ib in range(len(files2combine)):
         print('{:d}: {:s}'.format(ib + 1, files2combine[ib]))
@@ -60,8 +80,8 @@ def avg_headpos(condition, folder=[]):
     init_xfm = []
     init_rot = []
     for ff in files2combine:
-        fname = path.join(rawdir, ff)  # first file is enough
-        with warnings.catch_warnings():  # suppress some annoying warnings for now
+        fname = path.join(rawdir, ff)                                           # first file is enough NOT ANYMORE!
+        with warnings.catch_warnings():                                         # suppress some annoying warnings for now
             warnings.simplefilter("ignore")
             info = Raw(fname, preload=False, verbose=False, allow_maxshield=True).info
             print('Ignore the warning above. We\'ll run MaxFilter in a few moments...')
@@ -75,10 +95,10 @@ def avg_headpos(condition, folder=[]):
     
     mean_init_rot_xfm = rotation3d(*tuple(np.mean(np.stack(init_rot_angles), axis=0)))  # stack, then average, then make new xfm
     
-    assert(np.sum(mean_init_xfm[-1]) == 1.0)  # sanity check result
-    mean_trans = info['dev_head_t']  # use the last info as a template
-    mean_trans['trans'] = mean_init_xfm  # replace the transformation
-    mean_trans['trans'][:3, :3] = mean_init_rot_xfm  # replace the rotation part
+    assert(np.sum(mean_init_xfm[-1]) == 1.0)            # sanity check result
+    mean_trans = info['dev_head_t']                     # use the last info as a template
+    mean_trans['trans'] = mean_init_xfm                 # replace the transformation
+    mean_trans['trans'][:3, :3] = mean_init_rot_xfm     # replace the rotation part
     
     mean_init_headpos = mean_trans['trans'][:-1, -1]  # meters
     print('Mean head position (device coords): ({:.1f}, {:.1f}, {:.1f}) mm'.\
@@ -101,9 +121,11 @@ def avg_headpos(condition, folder=[]):
         print('\tSession {:d}: ({:.1f}, {:.1f}, {:.1f}) deg '.\
               format(ib + 1, *tuple(diff)))
     
+    # Write trans file
     mean_trans_folder = path.join(rawdir, 'trans_files')
     if not path.exists(mean_trans_folder):
         mkdir(mean_trans_folder)
+        
     mean_trans_file = path.join(mean_trans_folder, condition+'-trans.fif')
     write_trans(mean_trans_file, mean_trans)
     print("Wrote "+mean_trans_file)

@@ -75,6 +75,7 @@ ctc=/neuro/databases/ctc/ct_sparse.fif
 
 data_path=/neuro/data/sinuhe
 trans_path=/trans_files
+script_path=/home/natmeg/data_scripts/avg_headpos					#Change depending on which computer is used!
 cd $data_path
 cd $project/MEG
 
@@ -87,7 +88,6 @@ then
 	echo "specified project folder doesn't exist (change project variable)"
 	exit 1
 fi
-
 
 #############################################################################################################################################################################################################################################################
 ## Setup the varios MaxFilter option for the real run
@@ -244,72 +244,46 @@ do
 		for condition in ${trans_conditions[*]}
 		do
 #			echo $condition
-			source /home/natmeg/data_scripts/avg_headpos/avgHeadPos.sh $condition ### TEST IF MULTIPLE FILES ARE SUPPORTET. RENAME FILES
+#			source /home/natmeg/data_scripts/avg_headpos/avgHeadPos.sh $condition ### TEST IF MULTIPLE FILES ARE SUPPORTET. RENAME FILES
+			ipython $script_path/avgHeadPosInit.py $condition
+			
 		done
+		
 	elif [ "$trans_option=" = 'continous' ];
 		echo "Will use the average of continous head position"
-		echo "Now running MaxFilter to get continous head position..."
-
-
-		for prefx in ${trans_conditions[*]}
-		do
-			fname=$( find ./quat_files -type f -print | grep $prefix)
-			echo $fname
-
-		done
-
-	fi
-
-	exit 1
-		
-		for condition in ${trans_conditions[*]}
-		do
-
-			# Run maxfilter
-#			/neuro/bin/util/maxfilter -f ${fname} -o ./quat_files/$quat_fname -headpos -hp ./headpos/$pos_fname 
-
-#			source /home/natmeg/data_scripts/avg_headpos/headpos_avg.sh $condition
-
-
-
-
-	fi
-
-	####################################################################################################################################################################################################################################################
-	## loop over files in subject folders	####################################################################################################################################################################################################################################################
-	
-
-
-
-	for filename in `ls -p | grep -v / `;
-	do
 		echo ----------------------------------------------------------------------
 		echo "Now running initiat MaxFilter process to get continous head position"
 		echo ----------------------------------------------------------------------
 
-		for prefx in ${trans_conditions[*]}
-		do
-			fname=$( find ./quat_files -type f -print | grep $prefix)
-			echo $fname
-		############################################################################################################################################################################################################################################
-		## Run initial maxfilter to estimate continous head position		############################################################################################################################################################################################################################################
-		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
-		pos_fname=${filename:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
-		quat_fname=${filename:0:$length}_quat.fif 	# the name of the quat output file
-
-		#This will make output files for all files including spilt files. This has to be taken into account.
-		/neuro/bin/util/maxfilter -f ${fname} -o ./quat_files/$quat_fname -headpos -hp ./headpos/$pos_fname 
-
-
 		for condition in ${trans_conditions[*]}
 		do
-#			echo $condition
-			source /home/natmeg/data_scripts/avg_headpos/avgHeadMove.sh $condition  
-			# Here we need to know if it need to get all filenames or if MNE can handle that! 
+			### RUN MAXFILTER ON INDIVIDUAL FILES
+			condition_files=( $( find . -type f -print | grep $condition*) )
+			
+			for fname in ${condition_files[@]}
+			do
+				echo $fname
+				length=${fname}-4  ## the indices that we want from $file (everything except ".fif")
+				pos_fname=${fname:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
+				quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
+				
+				# Run maxfilter
+				/neuro/bin/util/maxfilter -f ${fname} -o ./quat_files/$quat_fname -headpos -hp ./headpos/$pos_fname 
+			done
+			
+			### MAKE AVERAGE HEADPOS
+			ipython $path_to_pyfile/avgHeadPosCont.py $condition $trans_type 
+		
 		done
-		fi
 
-		############################################################################################################################################################################################################################################
+	fi
+
+############################################################################################################################################################################################################
+	## loop over files in subject folders ##############################################################################################################################################################################################################
+	
+	for filename in `ls -p | grep -v / `;
+	do
+	############################################################################################################################################################################################################################################
 		## check whether file is in the empty_room_files array and change movement compensation to off is so, otherwise use the movecomp_default setting 	############################################################################################################################################################################################################################################
 		
 		if [ $movecomp_default = 'on' ]
@@ -334,9 +308,8 @@ do
 				set_movecomp 'off'
 				fi
 		fi
-
-		############################################################################################################################################################################################################################################
-		## check whether file is in the average head pos array and change trans argument
+	############################################################################################################################################################################################################################################
+		## check whether file is in the average head pos array and change trans argument [!!!WORKED THROUGH SCRIPT TO HERE!!!]
 ############################################################################################################################################################################################################################################
 		if [ "$trans_option" = 'on' ]
 		then
