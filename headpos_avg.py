@@ -44,7 +44,7 @@ def headpos_avg(filename, folder=[], overwrite=False):
         rawdir = folder
 
     fname = filename.split('/')[-1]
-    
+    fprefx = fname[:-4]                     # Remove 
     
     
 #    pos = read_head_pos(fname_pos)                    #op.join(rawdir, filename))   
