@@ -19,6 +19,6 @@ path_to_pyfile='/home/natmeg/data_scripts/avg_headpos' #Change depending on whic
 for CON in "$@"
 do
 	echo "$CON"
-	python $path_to_pyfile/avgHEadPos.py $CON
+	python $path_to_pyfile/avgHEadPosInit.py $CON
 done
 

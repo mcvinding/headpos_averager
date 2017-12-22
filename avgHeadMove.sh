@@ -18,6 +18,6 @@ fi
 
 path_to_pyfile='/home/natmeg/data_scripts/avg_headpos' #Change depending on which computer is used!
 
-ipython $path_to_pyfile/headpos_avg.py $1 $2  #
+ipython $path_to_pyfile/avgHeadPosCont.py $1 $2  #
 
 
