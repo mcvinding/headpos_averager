@@ -33,10 +33,15 @@ else:
     print('mne is not present')
     sys.exit()
     
-#sys.path.append('/home/mikkel/headpos_avg/')                #[!!!]
     
+sys.path.append('/home/mikkel/headpos_avg/')                #[!!!]
+
+
+###############################################################################
+## MAKE FUNCTIONS
+###############################################################################
 #%% averager for continous head postion
-def contAvg_headpos(condition, folder=[], method="median"):
+def contAvg_headpos(condition, method="median", folder=[]):
     """
     Calculate average transformation from dewar to head coordinates, based 
     on the continous head position estimated from MaxFilter
@@ -60,30 +65,38 @@ def contAvg_headpos(condition, folder=[], method="median"):
     # Check that the method works
     if method not in ['median','mean']:
         raise RuntimeError('Wrong method. Must be either \"mean\" or "median"!')
+    if not condition:
+        raise RuntimeError('You must provide a conditon!')
 
-    if not folder:                                              # [!] Match up with bash script !
-        rawdir = getcwd()
+    # Get folders
+    if not folder:        
+        rawdir =  getcwd()                                  # [!] Match up with bash script !
     else:
         rawdir = folder
+        
+    print(rawdir)
+    quatdir = op.join(rawdir,'quat_files')
     
     # Change to subject dir     
-    files2combine = glob.glob('%s*' % condition)
+#    files2combine = glob.glob('%s*' % condition)
+    files2combine = [f for f in listdir(quatdir) if condition in f and '_quat' in f]
     
     if not files2combine:
-        print('No files called \"%s\" found in %s' % (condition, rawdir))
-        return
+        raise RuntimeError('No files called \"%s\" found in %s' % (condition, quatdir))
     elif len(files2combine) > 1:
         print('Files used for average head pos:')    
         for ib in range(len(files2combine)):
             print('{:d}: {:s}'.format(ib + 1, files2combine[ib]))
+    else:
+        print('Will find average head pos in %s' % files2combine)    
     
     # LOAD DATA
     for idx, ffs in enumerate(files2combine):
-        print op.join(rawdir,ffs)  
+#        print op.join(quatdir,ffs)  
         if idx == 0:
-            raw =  read_raw_fif(op.join(rawdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
+            raw =  read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
         else:
-            raw.append(read_raw_fif(ffs, preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True))
+            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True))
         
     quat, times = raw.get_data(return_times=True)
     gof = quat[6,]                                              # Godness of fit channel
@@ -97,13 +110,11 @@ def contAvg_headpos(condition, folder=[], method="median"):
         quat = quat[:,begsam:].copy()
         times = times[begsam:].copy()
         
-    H = np.empty([4,4,len(times)])      # Initiate transforms
+    H = np.empty([4,4,len(times)])                          # Initiate transforms
     init_rot_angles = np.empty([len(times),3])
         
     for i,t in enumerate(times):
-        print i
         Hi = np.eye(4,4)
-        
         Hi[0:3,3] = quat[3:6,i].copy()
         Hi[:3,:3] = quat_to_rot(quat[0:3,i])
         init_rot_angles[i,:] = rotation_angles(Hi[:3,:3])
@@ -232,27 +243,41 @@ def initAvg_headpos(condition=[], folder=[]):
     write_trans(mean_trans_file, mean_trans)
     print("Wrote "+mean_trans_file)
     
-#%% RUN FUNCTION
-avgType = sys.argv[1]               # First argument = method to make average
-condi = sys.argv[2]                 # Second argument = condition
-rawdir = sys.argv[3]                # Third argument = directory
-method = str(sys.argv[4])           # Fourth argument = average method
-
-if not avgType:
-    raise RuntimeError('No arguments given')
-
-if not rawdir:
+#%% RUN FUNCTIONS
+print(len(sys.argv))
+if len(sys.argv) < 3:
+    raise RuntimeError('Not enough arguments given')
+if len(sys.argv) < 4:
+    avgType = str(sys.argv[1])               # First argument = method to make average
+    condi = sys.argv[2]                 # Second argument = condition
     rawdir = getcwd()
-    
-if avgType is 'continous':
-    contAvg_headpos(condi, folder=rawdir,method=method)
-elif avgType is 'initial':
+    method = []
+if len(sys.argv) == 4:
+    avgType = str(sys.argv[1])               # First argument = method to make average
+    condi = sys.argv[2]                 # Second argument = condition
+    rawdir = sys.argv[3]                # Third argument = directory
+    method = []
+else:
+    avgType = str(sys.argv[1])               # First argument = method to make average
+    condi = sys.argv[2]                 # Second argument = condition
+    rawdir = sys.argv[3]                # Third argument = directory
+    method = str(sys.argv[4])           # Fourth argument = average method
+
+print avgType
+
+if 'continous' in avgType:
+    if not method:
+        contAvg_headpos(condi, folder=rawdir)
+    else:
+        contAvg_headpos(condi, folder=rawdir, method=method)
+        
+elif 'initial' in avgType:
     initAvg_headpos(condi,folder=rawdir)
+    
 else:
     raise RuntimeError('Argument %s not accepted' % avgType)
 
 print('DONE')
-    
         
         
     

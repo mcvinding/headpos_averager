@@ -32,7 +32,7 @@ condi = sys.argv[1]
 rawdir = getcwd()
 
 #%% Main function
-def avg_headpos(condition=[], folder=[]):
+def initAvg_headpos(condition=[], folder=[]):
     """
     Write the average head position based of the initial fit of several 
     independent  files and save to a trans fif file
@@ -131,7 +131,7 @@ def avg_headpos(condition=[], folder=[]):
     print("Wrote "+mean_trans_file)
 
 #%% RUN FUNCTION
-avg_headpos(condi, rawdir)
+initAvg_headpos(condi, rawdir)
 
 print('DONE')
 

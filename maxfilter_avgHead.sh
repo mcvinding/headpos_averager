@@ -228,7 +228,7 @@ do
 			do
 				echo "Will use the average of INITIAL head position fit"
 	#			source /home/natmeg/data_scripts/avg_headpos/avgHeadPos.sh $condition ### TEST IF MULTIPLE FILES ARE SUPPORTET. RENAME FILES
-				ipython $script_path/avgHeadPosInit.py $condition
+				ipython $script_path/avg_headPos.py $trans_option $condition
 			
 			done
 		
@@ -259,7 +259,7 @@ do
 				done
 			
 				### MAKE AVERAGE HEADPOS
-				ipython $script_path/avgHeadPosCont.py $condition $trans_type 
+				ipython $script_path/avg_headPos.py $trans_option $condition $(pwd) $trans_type 
 				echo "would run Py script here..."
 			done
 		
