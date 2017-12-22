@@ -57,7 +57,7 @@ def headpos_avg(condition, method="median", folder=[]):
     
     # Check that the method works
     if method not in ['median','mean']:
-        raise RuntimeError('Wrong method. Must be either \"mean" or "median"!')
+        raise RuntimeError('Wrong method. Must be either \"mean\" or "median"!')
 
     if not folder:                                              # [!] Match up with bash script !
         rawdir = getcwd()
@@ -69,7 +69,7 @@ def headpos_avg(condition, method="median", folder=[]):
     
     if not files2combine:
         print('No files called \"%s\" found in %s' % (condition, rawdir))
-#        return
+        return
     elif len(files2combine) > 1:
         print('Files used for average head pos:')    
         for ib in range(len(files2combine)):
