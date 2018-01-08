@@ -33,7 +33,6 @@ else:
     print('mne is not present')
     sys.exit()
     
-    
 sys.path.append('/home/mikkel/headpos_avg/')                #[!!!]
 
 
@@ -121,11 +120,15 @@ def contAvg_headpos(condition, method="median", folder=[]):
         assert(np.sum(Hi[-1]) == 1.0)  # sanity check result
         H[:,:,i] = Hi.copy()
     
-    H_mean = np.mean(H, axis=2)                 # stack, then average over new dim
-    assert(np.sum(H_mean[-1]) == 1.0)  # sanity check result
-
-    mean_rot_xfm = rotation3d(*tuple(np.mean(init_rot_angles, axis=0)))  # stack, then average, then make new xfm
+    if method is "mean":
+        H_mean = np.mean(H, axis=2)                 # stack, then average over new dim
+        mean_rot_xfm = rotation3d(*tuple(np.mean(init_rot_angles, axis=0)))  # stack, then average, then make new xfm
+    elif method is "median":
+        H_mean = np.median(H, axis=2)                 # stack, then average over new dim
+        mean_rot_xfm = rotation3d(*tuple(np.median(init_rot_angles, axis=0)))  # stack, then average, then make new xfm        
+        
     H_mean[:3,:3] = mean_rot_xfm
+    assert(np.sum(H_mean[-1]) == 1.0)  # sanity check result
 
     # Create the mean structure and save as .fif    
     mean_trans = raw.info['dev_head_t']  # use the last info as a template
