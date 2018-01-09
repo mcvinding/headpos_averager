@@ -259,8 +259,8 @@ do
 				done
 			
 				### MAKE AVERAGE HEADPOS
-				ipython $script_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
-#				echo "would run Py script here..."
+#				ipython $script_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
+				echo "would run Py script here..."
 			done
 		
 		else

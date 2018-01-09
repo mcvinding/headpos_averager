@@ -16,7 +16,7 @@ import warnings
 import imp
 import os.path as op
 #import matplotlib.pyplot as plt
-from os import listdir, mkdir, path, getcwd, chdir
+from os import listdir, mkdir, path, getcwd, environ
 
 try:
     mne_info = imp.find_module('mne')
@@ -33,15 +33,14 @@ else:
     print('mne is not present')
     sys.exit()
     
-    
-sys.path.append('/home/mikkel/headpos_avg/')                #[!!!]
-
+#sys.path.append('/home/mikkel/headpos_avg/')                #[!!!]
+sys.path.append(environ["script_path"])
 
 ###############################################################################
 ## MAKE FUNCTIONS
 ###############################################################################
 #%% averager for continous head postion
-def contAvg_headpos(condition, method="median", folder=[]):
+def contAvg_headpos(condition, method='median', folder=[]):
     """
     Calculate average transformation from dewar to head coordinates, based 
     on the continous head position estimated from MaxFilter
@@ -61,14 +60,13 @@ def contAvg_headpos(condition, method="median", folder=[]):
     MNE-Python transform object
         4x4 transformation matrix
     """
-    
-    # Check that the method works
+        # Check that the method works
     if method not in ['median','mean']:
         raise RuntimeError('Wrong method. Must be either \"mean\" or "median"!')
     if not condition:
         raise RuntimeError('You must provide a conditon!')
 
-    # Get folders
+    # Get and set folders
     if not folder:        
         rawdir =  getcwd()                                  # [!] Match up with bash script !
     else:
@@ -76,6 +74,14 @@ def contAvg_headpos(condition, method="median", folder=[]):
         
     print(rawdir)
     quatdir = op.join(rawdir,'quat_files')
+    
+    mean_trans_folder = op.join(rawdir, 'trans_files')
+    if not op.exists(mean_trans_folder):                      # Make sure output folder exists
+        mkdir(mean_trans_folder)
+        
+    mean_trans_file = op.join(mean_trans_folder, condition+'-trans.fif')
+    if op.isfile(mean_trans_file):
+        raise RuntimeError('N"%s\" already exists is %s. Delete aif you want to rerun' % (mean_trans_file, mean_trans_folder))
     
     # Change to subject dir     
 #    files2combine = glob.glob('%s*' % condition)
@@ -109,7 +115,9 @@ def contAvg_headpos(condition, method="median", folder=[]):
         raw.crop(tmin=raw.times[begsam])
         quat = quat[:,begsam:].copy()
         times = times[begsam:].copy()
-        
+    
+    # Get continous transformation    
+    print('Reading transformation. This will take a while...')
     H = np.empty([4,4,len(times)])                          # Initiate transforms
     init_rot_angles = np.empty([len(times),3])
         
@@ -121,11 +129,15 @@ def contAvg_headpos(condition, method="median", folder=[]):
         assert(np.sum(Hi[-1]) == 1.0)  # sanity check result
         H[:,:,i] = Hi.copy()
     
-    H_mean = np.mean(H, axis=2)                 # stack, then average over new dim
-    assert(np.sum(H_mean[-1]) == 1.0)  # sanity check result
-
-    mean_rot_xfm = rotation3d(*tuple(np.mean(init_rot_angles, axis=0)))  # stack, then average, then make new xfm
+    if method in ["mean"]:
+        H_mean = np.mean(H, axis=2)                 # stack, then average over new dim
+        mean_rot_xfm = rotation3d(*tuple(np.mean(init_rot_angles, axis=0)))  # stack, then average, then make new xfm
+    elif method in ["median"]:
+        H_mean = np.median(H, axis=2)                 # stack, then average over new dim
+        mean_rot_xfm = rotation3d(*tuple(np.median(init_rot_angles, axis=0)))  # stack, then average, then make new xfm        
+        
     H_mean[:3,:3] = mean_rot_xfm
+    assert(np.sum(H_mean[-1]) == 1.0)  # sanity check result
 
     # Create the mean structure and save as .fif    
     mean_trans = raw.info['dev_head_t']  # use the last info as a template
@@ -133,11 +145,7 @@ def contAvg_headpos(condition, method="median", folder=[]):
 
 #    plot_alignment(raw.info,subject='0406',subjects_dir='/home/mikkel/PD_motor/fs_subjects_dir/',dig=True, meg='helmet')
 
-    mean_trans_folder = op.join(rawdir, 'trans_files')
-    if not op.exists(mean_trans_folder):                      # Make sure output folder exists
-        mkdir(mean_trans_folder)
-        
-    mean_trans_file = op.join(mean_trans_folder, condition+'-trans.fif')
+    # Write file
     write_trans(mean_trans_file, mean_trans)
     print("Wrote "+mean_trans_file)
     
@@ -263,7 +271,8 @@ else:
     rawdir = sys.argv[3]                # Third argument = directory
     method = str(sys.argv[4])           # Fourth argument = average method
 
-print avgType
+print "AVERAGE TYOE = "+avgType
+print "METHOD = "+method
 
 if 'continous' in avgType:
     if not method:
