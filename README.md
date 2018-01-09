@@ -15,7 +15,7 @@ Project to calculate average head position that will be used as starting positio
 ## Dependencies:
 This pipeline is a wrapper for running Neuromag MaxFilter inside the NatMEG infrastructure at Karolinska Insitutet, Sweden (www.natmeg.se). Neuromag MaxFilter is a commercial software licenses by Electra Neuromag.
 The head position averagers are written in Python and use functions from MNE-Python (https://martinos.org/mne/stable/index.html).
-The pipeline has been tested to work on DANA (last: 2017-12-22), but no guarrantee is provided that it will work elsewhere!
+The pipeline has been tested to work on DANA (last: 2018-01-09), but no guarrantee is provided that it will work elsewhere!
 
 ## Feedback:
 If you use this tool, please let me know how it works at https://github.com/mcvinding/headpos_averager or mailto:mikkel.vinding@ki.se

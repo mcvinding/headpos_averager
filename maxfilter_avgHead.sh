@@ -23,7 +23,7 @@
 #############################################################################################################################################################################################################################################################
 
 ## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
-project=working_memory    			# The name of your project in /neuro/data/sinuhe
+project=working_memory_WorkInProgress    			# The name of your project in /neuro/data/sinuhe
 trans_conditions=( 'nback' ) 			# Name(s) of condition(s) on which head position correction should be applied
 trans_option=continous 				# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files?
 trans_type=median 				# mean/median, method to estimate "average" head position (only for trans_option=continous).
@@ -66,8 +66,8 @@ trans_folder=trans_files        # name of folder where average transformation fi
 #############################################################################################################################################################################################################################################################
 #############################################################################################################################################################################################################################################################
 
-script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
-#echo $script_path 																		#[!!!]
+export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
+echo $script_path 																		#[!!!]
 cd $data_path
 cd $project/MEG
 
@@ -227,9 +227,7 @@ do
 			for condition in ${trans_conditions[*]}
 			do
 				echo "Will use the average of INITIAL head position fit"
-	#			source /home/natmeg/data_scripts/avg_headpos/avgHeadPos.sh $condition ### TEST IF MULTIPLE FILES ARE SUPPORTET. RENAME FILES
-				ipython $script_path/avg_headPos.py $trans_option $condition
-			
+				ipython $script_path/avg_headpos.py $trans_option $condition
 			done
 		
 		elif [[ "$trans_option" == "continous" ]]; then
@@ -250,17 +248,19 @@ do
 					quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
 				
 					if [[ ! -f ./$quat_folder/$quat_fname ]]; then
+
 						# Run maxfilter
 						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname -headpos -hp ./$headpos_folder/$pos_fname 
-						echo "Would run initial MaxF here"
+#						echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
 						continue
+					fi
 				done
 			
 				### MAKE AVERAGE HEADPOS
-				ipython $script_path/avg_headPos.py $trans_option $condition $(pwd) $trans_type 
-				echo "would run Py script here..."
+				ipython $script_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
+#				echo "would run Py script here..."
 			done
 		
 		else
@@ -325,16 +325,23 @@ do
 			fi
 		done
 		
-#		echo "Do transform: $do_transform"
+		echo "Do transform: $do_transform"
 			
-		if [ "$do_transform" == "yes" ]
+		if [ "$do_transform" == 'yes' ]
 		then
-
+			echo $(pwd)
+			echo $trans_folder
 			trans_fname=$( find ./$trans_folder -type f -print | grep $prefix)  # Find the appropiate trans file
+
+			if [[ -z $trans_fname ]]; then
+				echo "No -trans files in folder $(pwd)/$trans_fname with name $prefix"
+				exit 1
+			fi
+
 			trans="-trans ${trans_fname}"
 			trans_string=_avgtrans
 			echo "Trans is: $trans_fname"
-			echo 
+			echo $trans
 		else
 			trans=
 			trans_string=					
@@ -352,7 +359,8 @@ do
 		for sss_file in $sss_files
 		do
 			if [ -n $sss_file ]
-			then	if [ $sss_file = $filename ]
+			then	
+				if [ $sss_file = $filename ]
 				then
 					set_tsss 'off'
 				fi
@@ -370,8 +378,8 @@ do
 		## the actual maxfilter commands 
 ############################################################################################################################################################################################################
 		
-#		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
-		echo "Would run MaxF here!"
+		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
+#		echo "Would run MaxF here!"
 	done
 
 ####################################################################################################################################################################################################################################################
