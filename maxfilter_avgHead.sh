@@ -10,7 +10,7 @@
 ## 3) Save transformation in -trans file
 ## 4) Run MaxFilter with correct settings (tSSS, movecomp, etc.) and transform to average headpos.
 ##
-## (c) Mikkel C. Vinding and Lau M. Andersen (2016-2017)
+## (c) Mikkel C. Vinding and Lau M. Andersen (2016-2018)
 ##
 ## No warraty guarateed. This is a wrapper for calling Neuromag MaxFilter within the NatMEG (www.natmeg.se) infrastructure. Neuromag MaxFilter is 
 ## a comercial software. For reference read the MaxFilter Manual.
@@ -250,7 +250,7 @@ do
 					if [[ ! -f ./$quat_folder/$quat_fname ]]; then
 
 						# Run maxfilter
-						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname -headpos -hp ./$headpos_folder/$pos_fname 
+						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname 
 #						echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
