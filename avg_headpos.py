@@ -279,21 +279,11 @@ if 'continous' in avgType:
         contAvg_headpos(condi, folder=rawdir)
     else:
         contAvg_headpos(condi, folder=rawdir, method=method)
-        
 elif 'initial' in avgType:
     initAvg_headpos(condi,folder=rawdir)
-    
 else:
     raise RuntimeError('Argument %s not accepted' % avgType)
 
-print('DONE')
-        
-        
-    
-        
-        
-        
-        
-        
+print('DONE')     
         
         
