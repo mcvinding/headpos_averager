@@ -66,7 +66,7 @@ trans_folder=trans_files        # name of folder where average transformation fi
 #############################################################################################################################################################################################################################################################
 #############################################################################################################################################################################################################################################################
 
-export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
+export script_path="/home/natmeg/data_scripts/avg_headpos"			#Change depending on which computer is used!
 echo $script_path 																		#[!!!]
 cd $data_path
 cd $project/MEG
