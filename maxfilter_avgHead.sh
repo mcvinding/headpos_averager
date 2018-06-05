@@ -250,7 +250,7 @@ do
 					if [[ ! -f ./$quat_folder/$quat_fname ]]; then
 
 						# Run maxfilter
-						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname 
+						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad
 #						echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
