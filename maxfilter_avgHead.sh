@@ -23,8 +23,8 @@
 #############################################################################################################################################################################################################################################################
 
 ## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
-project=working_memory_WorkInProgress    			# The name of your project in /neuro/data/sinuhe
-trans_conditions=( 'nback' ) 			# Name(s) of condition(s) on which head position correction should be applied
+project=Your_Project_Name    			# The name of your project in /neuro/data/sinuhe
+trans_conditions=( 'task1' 'task2' ) 			# Name(s) of condition(s) on which head position correction should be applied
 trans_option=continous 				# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files?
 trans_type=median 				# mean/median, method to estimate "average" head position (only for trans_option=continous).
 
@@ -371,7 +371,7 @@ do
 		## output arguments 		############################################################################################################################################################################################################################################
 		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
 
-		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}.fif   ## !This does not conform to MNE naming conventions
+		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation}.fif   ## !This does not conform to MNE naming conventions
 		echo "Output is: $output_file"
 
 ############################################################################################################################################################################################################################################
