@@ -184,6 +184,10 @@ subjects_and_dates=( $(find . -maxdepth 2 -mindepth 2 -type d -exec echo {} \;) 
 
 for subject_and_date in "${subjects_and_dates[@]}"
 do
+
+	echo -------------------------------------------------------------
+	echo "		Now processing $subject_and_date"
+	echo -------------------------------------------------------------
 	
 	cd $data_path/$project/MEG/$subject_and_date/
 	echo $subject_and_date
@@ -280,6 +284,10 @@ do
 	
 	for filename in $(find ./*'.fif' 2> /dev/null)
 	do
+	
+		echo -------------------------------------------------------------
+		echo "		Now processing file $filename"
+		echo -------------------------------------------------------------
 	
 		if [[ ! "$filename" == *".fif" ]]; then
 			echo "$filename not a fif file"
