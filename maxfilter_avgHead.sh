@@ -238,20 +238,22 @@ do
 			for condition in ${trans_conditions[*]}
 			do
 
-				condition_files=$( find ./*$condition* -type f )    # -print | grep $condition*) )
+				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )
 #				echo $condition_files
 				echo "Will use the $trans_option of the CONTINOUS head position"
 				for fname in ${condition_files[@]}
 				do
-					echo $fname
-					echo -----------------------------------------------------------------------------------
-					echo "Now running initiat MaxFilter on $fname to get continous head position"
-					echo -----------------------------------------------------------------------------------
+
 					length=${#fname}-4  ## the indices that we want from $file (everything except ".fif")
 					pos_fname=${fname:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
 					quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
+					quat_fpath="./$quat_folder/$quat_fname"
 				
-					if [[ ! -f ./$quat_folder/$quat_fname ]]; then
+					if [ -f .$quat_fpath ]; then
+					
+						echo -----------------------------------------------------------------------------------
+						echo "Now running initiat MaxFilter on $fname to get continous head position"
+						echo -----------------------------------------------------------------------------------
 
 						# Run maxfilter
 						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad
@@ -380,7 +382,6 @@ do
 		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
 
 		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation}.fif   ## !This does not conform to MNE naming conventions
-		echo "Output is: $output_file"
 
 ############################################################################################################################################################################################################################################
 		## the actual maxfilter commands 
@@ -388,6 +389,7 @@ do
 		
 		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
 #		echo "Would run MaxF here!"
+		echo "Output is: $output_file"
 	done
 
 ####################################################################################################################################################################################################################################################
