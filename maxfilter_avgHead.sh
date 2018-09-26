@@ -66,7 +66,8 @@ trans_folder=trans_files        # name of folder where average transformation fi
 #############################################################################################################################################################################################################################################################
 #############################################################################################################################################################################################################################################################
 
-export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
+#export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
+export script_path=/home/natmeg/data_scripts/avg_headpos 							# Correct location on DANA (NB! change if used on another location)
 echo $script_path 																		#[!!!]
 cd $data_path
 cd $project/MEG
@@ -240,7 +241,7 @@ do
 
 				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )
 #				echo $condition_files
-				echo "Will use the $trans_option of the CONTINOUS head position"
+				echo "Will use the $trans_type of the CONTINOUS head position"
 				for fname in ${condition_files[@]}
 				do
 
@@ -249,7 +250,7 @@ do
 					quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
 					quat_fpath="./$quat_folder/$quat_fname"
 				
-					if [ -f .$quat_fpath ]; then
+					if [ ! -f $quat_fpath ]; then
 					
 						echo -----------------------------------------------------------------------------------
 						echo "Now running initiat MaxFilter on $fname to get continous head position"
