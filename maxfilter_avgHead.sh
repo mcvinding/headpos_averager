@@ -23,8 +23,8 @@
 #############################################################################################################################################################################################################################################################
 
 ## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
-project=working_memory_WorkInProgress    			# The name of your project in /neuro/data/sinuhe
-trans_conditions=( 'nback' ) 			# Name(s) of condition(s) on which head position correction should be applied
+project=Your_Project_Name    			# The name of your project in /neuro/data/sinuhe
+trans_conditions=( 'task1' 'task2' ) 			# Name(s) of condition(s) on which head position correction should be applied
 trans_option=continous 				# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files?
 trans_type=median 				# mean/median, method to estimate "average" head position (only for trans_option=continous).
 
@@ -66,7 +66,7 @@ trans_folder=trans_files        # name of folder where average transformation fi
 #############################################################################################################################################################################################################################################################
 #############################################################################################################################################################################################################################################################
 
-export script_path="/home/natmeg/data_scripts/avg_headpos"			#Change depending on which computer is used!
+export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
 echo $script_path 																		#[!!!]
 cd $data_path
 cd $project/MEG
@@ -184,6 +184,10 @@ subjects_and_dates=( $(find . -maxdepth 2 -mindepth 2 -type d -exec echo {} \;) 
 
 for subject_and_date in "${subjects_and_dates[@]}"
 do
+
+	echo -------------------------------------------------------------
+	echo "		Now processing $subject_and_date"
+	echo -------------------------------------------------------------
 	
 	cd $data_path/$project/MEG/$subject_and_date/
 	echo $subject_and_date
@@ -234,20 +238,22 @@ do
 			for condition in ${trans_conditions[*]}
 			do
 
-				condition_files=$( find ./*$condition* -type f )    # -print | grep $condition*) )
+				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )
 #				echo $condition_files
 				echo "Will use the $trans_option of the CONTINOUS head position"
 				for fname in ${condition_files[@]}
 				do
-					echo $fname
-					echo -----------------------------------------------------------------------------------
-					echo "Now running initiat MaxFilter on $fname to get continous head position"
-					echo -----------------------------------------------------------------------------------
+
 					length=${#fname}-4  ## the indices that we want from $file (everything except ".fif")
 					pos_fname=${fname:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
 					quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
+					quat_fpath="./$quat_folder/$quat_fname"
 				
-					if [[ ! -f ./$quat_folder/$quat_fname ]]; then
+					if [ -f .$quat_fpath ]; then
+					
+						echo -----------------------------------------------------------------------------------
+						echo "Now running initiat MaxFilter on $fname to get continous head position"
+						echo -----------------------------------------------------------------------------------
 
 						# Run maxfilter
 						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad
@@ -280,6 +286,10 @@ do
 	
 	for filename in $(find ./*'.fif' 2> /dev/null)
 	do
+	
+		echo -------------------------------------------------------------
+		echo "		Now processing file $filename"
+		echo -------------------------------------------------------------
 	
 		if [[ ! "$filename" == *".fif" ]]; then
 			echo "$filename not a fif file"
@@ -371,8 +381,7 @@ do
 		## output arguments 		############################################################################################################################################################################################################################################
 		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
 
-		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}.fif   ## !This does not conform to MNE naming conventions
-		echo "Output is: $output_file"
+		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation}.fif   ## !This does not conform to MNE naming conventions
 
 ############################################################################################################################################################################################################################################
 		## the actual maxfilter commands 
@@ -380,6 +389,7 @@ do
 		
 		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
 #		echo "Would run MaxF here!"
+		echo "Output is: $output_file"
 	done
 
 ####################################################################################################################################################################################################################################################

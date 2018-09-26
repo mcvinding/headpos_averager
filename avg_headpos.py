@@ -81,7 +81,9 @@ def contAvg_headpos(condition, method='median', folder=[]):
         
     mean_trans_file = op.join(mean_trans_folder, condition+'-trans.fif')
     if op.isfile(mean_trans_file):
-        raise RuntimeError('N"%s\" already exists is %s. Delete aif you want to rerun' % (mean_trans_file, mean_trans_folder))
+        warnings.warn('N"%s\" already exists is %s. Delete if you want to rerun' % (mean_trans_file, mean_trans_folder), RuntimeWarning)
+        return
+#        raise RuntimeError('N"%s\" already exists is %s. Delete aif you want to rerun' % (mean_trans_file, mean_trans_folder))
     
     # Change to subject dir     
 #    files2combine = glob.glob('%s*' % condition)
@@ -189,7 +191,17 @@ def initAvg_headpos(condition=[], folder=[]):
         print('No files called \"%s\" found in %s' % (condition, rawdir))
         return
     elif len(files2combine) < 2:
-        raise RuntimeError('Only one file, please check!')                      # [!!!] should it just copy the initial headpos?
+        warnings.warn('Only one file, please check!', RuntimeWarning)                      # [!!!] should it just copy the initial headpos?
+        
+    # Define output
+    mean_trans_folder = path.join(rawdir, 'trans_files')
+    if not path.exists(mean_trans_folder):
+        mkdir(mean_trans_folder)
+        
+    mean_trans_file = path.join(mean_trans_folder, condition+'-trans.fif')
+    if op.isfile(mean_trans_file):
+        warnings.warn('N"%s\" already exists is %s. Delete if you want to rerun' % (mean_trans_file, mean_trans_folder), RuntimeWarning)
+        return        
     
     files2combine = [f for f in files2combine if '.fif' in f]               # Make sure only fif files
     files2combine.sort()
@@ -242,12 +254,8 @@ def initAvg_headpos(condition=[], folder=[]):
         print('\tSession {:d}: ({:.1f}, {:.1f}, {:.1f}) deg '.\
               format(ib + 1, *tuple(diff)))
     
-    # Write trans file
-    mean_trans_folder = path.join(rawdir, 'trans_files')
-    if not path.exists(mean_trans_folder):
-        mkdir(mean_trans_folder)
-        
-    mean_trans_file = path.join(mean_trans_folder, condition+'-trans.fif')
+    # Write trans file        
+#    mean_trans_file = path.join(mean_trans_folder, condition+'-trans.fif')
     write_trans(mean_trans_file, mean_trans)
     print("Wrote "+mean_trans_file)
     
