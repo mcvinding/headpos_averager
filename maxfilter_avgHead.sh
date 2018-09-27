@@ -285,14 +285,14 @@ do
 #	list=$(find ./*.fif 2> /dev/null)
 #	echo $list
 	
-	for filename in $(find ./*'.fif' 2> /dev/null)
+	for filename in `ls -p | grep -v / `   #$(find ./*'.fif' 2> /dev/null)
 	do
 	
 		echo -------------------------------------------------------------
 		echo "		Now processing file $filename"
 		echo -------------------------------------------------------------
 	
-		if [[ ! "$filename" == *".fif" ]]; then
+		if [[ ! "$filename" == *".fif"* ]]; then
 			echo "$filename not a fif file"
 			continue
 		fi
