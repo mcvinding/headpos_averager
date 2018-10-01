@@ -382,7 +382,7 @@ do
 		## output arguments 		############################################################################################################################################################################################################################################
 		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
 
-		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation}.fif   ## !This does not conform to MNE naming conventions
+		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.fif   ## !This does not conform to MNE naming conventions
 
 ############################################################################################################################################################################################################################################
 		## the actual maxfilter commands 
