@@ -12,6 +12,9 @@ Project to calculate average head position that will be used as starting positio
 3) [?] Make executable [?]
 4) Run script
 
+## How to
+Be aware of the following before running the scripts: make sure files you want to combine all are named in a similar way with a common string that is used to identify related files: e.g. task-1.fif, task-2.fif, etc. The common string is what you specify in in variable **trans_conditions** (multiple names can be specified for different conditions). The files must also be uniquely identified by the common string so that the common string does not occur in both files. E.g. task-1.fif and new-task.fif will both be considered to be part of a group called "task".
+
 ## Dependencies:
 This pipeline is a wrapper for running Neuromag MaxFilter inside the NatMEG infrastructure at Karolinska Insitutet, Sweden (www.natmeg.se). Neuromag MaxFilter is a commercial software licenses by Electra Neuromag.
 The head position averagers are written in Python and use functions from MNE-Python (https://martinos.org/mne/stable/index.html).
