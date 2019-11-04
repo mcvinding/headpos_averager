@@ -28,19 +28,22 @@ if found_mne:
     from mne.io import read_raw_fif, Raw
 #    from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
     from mne.transforms import rotation_angles, rotation3d, write_trans, quat_to_rot
-#    from mne.viz import plot_head_positions, plot_alignment
+    from mne.viz import plot_head_positions, plot_alignment
 else:
     print('mne is not present')
     sys.exit()
     
-#sys.path.append('/home/mikkel/headpos_avg/')                #[!!!]
+#A ppend toolbox dir
 sys.path.append(environ["script_path"])
+from summary_funs import total_dist_moved, plot_movement
+#sys.path.append('/home/mikkel/avg_headpos/')                #[!!!]
+
 
 ###############################################################################
 ## MAKE FUNCTIONS
 ###############################################################################
 #%% averager for continous head postion
-def contAvg_headpos(condition, method='median', folder=[]):
+def contAvg_headpos(condition, method='median', folder=[], summary=True):
     """
     Calculate average transformation from dewar to head coordinates, based 
     on the continous head position estimated from MaxFilter
@@ -60,7 +63,8 @@ def contAvg_headpos(condition, method='median', folder=[]):
     MNE-Python transform object
         4x4 transformation matrix
     """
-        # Check that the method works
+    # Check that the method works
+    method = method.lower()
     if method not in ['median','mean']:
         raise RuntimeError('Wrong method. Must be either \"mean\" or "median"!')
     if not condition:
@@ -83,10 +87,8 @@ def contAvg_headpos(condition, method='median', folder=[]):
     if op.isfile(mean_trans_file):
         warnings.warn('N"%s\" already exists is %s. Delete if you want to rerun' % (mean_trans_file, mean_trans_folder), RuntimeWarning)
         return
-#        raise RuntimeError('N"%s\" already exists is %s. Delete aif you want to rerun' % (mean_trans_file, mean_trans_folder))
     
     # Change to subject dir     
-#    files2combine = glob.glob('%s*' % condition)
     files2combine = [f for f in listdir(quatdir) if condition in f and '_quat' in f]
     
     if not files2combine:
@@ -100,7 +102,6 @@ def contAvg_headpos(condition, method='median', folder=[]):
     
     # LOAD DATA
     for idx, ffs in enumerate(files2combine):
-#        print op.join(quatdir,ffs)  
         if idx == 0:
             raw =  read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
         else:
@@ -117,10 +118,14 @@ def contAvg_headpos(condition, method='median', folder=[]):
         raw.crop(tmin=raw.times[begsam])
         quat = quat[:,begsam:].copy()
         times = times[begsam:].copy()
+        
+    # Make summaries
+    plot_movement(quat, times, dirname=rawdir, identifier=condition)
+    total_dist_moved(quat, times, write=True, dirname=rawdir, identifier=condition)
     
     # Get continous transformation    
     print('Reading transformation. This will take a while...')
-    H = np.empty([4,4,len(times)])                          # Initiate transforms
+    H = np.empty([4,4,len(times)])                              # Initiate transforms
     init_rot_angles = np.empty([len(times),3])
         
     for i,t in enumerate(times):
@@ -128,7 +133,7 @@ def contAvg_headpos(condition, method='median', folder=[]):
         Hi[0:3,3] = quat[3:6,i].copy()
         Hi[:3,:3] = quat_to_rot(quat[0:3,i])
         init_rot_angles[i,:] = rotation_angles(Hi[:3,:3])
-        assert(np.sum(Hi[-1]) == 1.0)  # sanity check result
+        assert(np.sum(Hi[-1]) == 1.0)                           # sanity check result
         H[:,:,i] = Hi.copy()
     
     if method in ["mean"]:
@@ -144,8 +149,6 @@ def contAvg_headpos(condition, method='median', folder=[]):
     # Create the mean structure and save as .fif    
     mean_trans = raw.info['dev_head_t']  # use the last info as a template
     mean_trans['trans'] = H_mean.copy()
-
-#    plot_alignment(raw.info,subject='0406',subjects_dir='/home/mikkel/PD_motor/fs_subjects_dir/',dig=True, meg='helmet')
 
     # Write file
     write_trans(mean_trans_file, mean_trans)
@@ -255,7 +258,6 @@ def initAvg_headpos(condition=[], folder=[]):
               format(ib + 1, *tuple(diff)))
     
     # Write trans file        
-#    mean_trans_file = path.join(mean_trans_folder, condition+'-trans.fif')
     write_trans(mean_trans_file, mean_trans)
     print("Wrote "+mean_trans_file)
     
