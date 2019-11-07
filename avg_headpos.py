@@ -294,6 +294,4 @@ elif 'initial' in avgType:
 else:
     raise RuntimeError('Argument %s not accepted' % avgType)
 
-print('DONE')     
-        
-        
+print('DONE')

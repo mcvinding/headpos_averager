@@ -244,7 +244,10 @@ do
 				echo "Will use the $trans_type of the CONTINOUS head position"
 				for fname in ${condition_files[@]}
 				do
-
+					if [ ! -f $fname ]; then
+						continue
+					fi
+						
 					length=${#fname}-4  ## the indices that we want from $file (everything except ".fif")
 					pos_fname=${fname:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
 					quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
@@ -346,7 +349,7 @@ do
 
 			if [[ -z $trans_fname ]]; then
 				echo "No -trans files in folder $(pwd)/$trans_fname with name $prefix"
-				exit 1
+				continue
 			fi
 
 			trans="-trans ${trans_fname}"
