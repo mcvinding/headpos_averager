@@ -241,12 +241,21 @@ do
 			do
 
 				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )
-#				echo $condition_files
+				echo $condition_files
+
+				if [[ -z "$condition_files" ]]; then
+					echo "No files for condition $condition"
+					continue
+				fi
+
 				echo "Will use the $trans_type of the CONTINOUS head position"
 				for fname in ${condition_files[@]}
 				do
-
-					length=${#fname}-4  ## the indices that we want from $file (everything except ".fif")
+					if [[ ! -f $fname ]]; then
+						continue
+					fi
+						
+					length=${#fname}-4  								# the indices that we want from $file (everything except ".fif")
 					pos_fname=${fname:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
 					quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
 					quat_fpath="./$quat_folder/$quat_fname"
@@ -347,7 +356,7 @@ do
 
 			if [[ -z $trans_fname ]]; then
 				echo "No -trans files in folder $(pwd)/$trans_fname with name $prefix"
-				exit 1
+				continue
 			fi
 
 			trans="-trans ${trans_fname}"
@@ -384,7 +393,9 @@ do
 		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
 
 		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.fif   ## !This does not conform to MNE naming conventions
-
+		output_log=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.log
+		echo "Output is: $output_file"
+		
 ############################################################################################################################################################################################################################################
 		## the actual maxfilter commands 
 ############################################################################################################################################################################################################
