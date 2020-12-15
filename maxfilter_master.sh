@@ -10,6 +10,7 @@
 project=your_project_name_here    ## the name of your project in /neuro/data/sinuhe
 correlation=0.98
 autobad=on # on/off
+badlimit=7 					# Detection rate for autobad. Default=7.
 tsss_default=on # on/off (if off does Signal Space Separation, if on does temporal Signal Space Separation)
 cal=/neuro/databases/sss/sss_cal.dat
 ctc=/neuro/databases/ctc/ct_sparse.fif
@@ -240,7 +241,7 @@ do
 		############################################################################################################################################################################################################################################
 		## the actual maxfilter command		############################################################################################################################################################################################################################################
 
-		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${headpos_string}${linefreq_string}${ds_string}.log
+		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -badlimit $badlimit -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${headpos_string}${linefreq_string}${ds_string}.log
 	done
 
 	####################################################################################################################################################################################################################################################

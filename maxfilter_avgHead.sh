@@ -10,7 +10,7 @@
 ## 3) Save transformation in -trans file
 ## 4) Run MaxFilter with correct settings (tSSS, movecomp, etc.) and transform to average headpos.
 ##
-## (c) Mikkel C. Vinding and Lau M. Andersen (2016-2018)
+## (c) Mikkel C. Vinding and Lau M. Andersen (2016-2021)
 ##
 ## No warraty guarateed. This is a wrapper for calling Neuromag MaxFilter within the NatMEG (www.natmeg.se) infrastructure. Neuromag MaxFilter is 
 ## a comercial software. For reference read the MaxFilter Manual.
@@ -34,6 +34,7 @@ sss_files=( 'only_apply_sss_to_this_file.fif' ) 	# put the names of files you on
 
 ## STEP 3: Select MaxFilter options.
 autobad=on 					# Options: on/off
+badlimit=7 					# Detection rate for autobad. Default=7.
 tsss_default=on 				# on/off (if off does Signal Space Separation, if on does temporal Signal Space Separation)
 correlation=0.98 				# tSSS correlation rejection limit (default is 0.98)
 movecomp_default=on 				# on/off, do movement compensation?
@@ -257,7 +258,7 @@ do
 						echo -----------------------------------------------------------------------------------
 
 						# Run maxfilter
-						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad
+						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit
 #						echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
@@ -388,7 +389,7 @@ do
 		## the actual maxfilter commands 
 ############################################################################################################################################################################################################
 		
-		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
+		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -badlimit $badlimit -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
 #		echo "Would run MaxF here!"
 		echo "Output is: $output_file"
 	done
