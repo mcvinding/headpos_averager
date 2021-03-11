@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #!/bin/bash
 
 ## Script for automatic maxfilter processing where movement correction is done by shifting to
@@ -23,8 +24,8 @@
 #############################################################################################################################################################################################################################################################
 
 ## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
-project=Your_Project_Name    			# The name of your project in /neuro/data/sinuhe
-trans_conditions=( 'task1' 'task2' ) 			# Name(s) of condition(s) on which head position correction should be applied
+project=your_project_name    			# The name of your project in /neuro/data/sinuhe
+trans_conditions=( 'task1' 'task2' ) 		# Name(s) of condition(s) on which head position correction should be applied
 trans_option=continous 				# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files?
 trans_type=median 				# mean/median, method to estimate "average" head position (only for trans_option=continous).
 
@@ -69,9 +70,9 @@ trans_folder=trans_files        # name of folder where average transformation fi
 
 #export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
 export script_path=/home/natmeg/data_scripts/avg_headpos 							# Correct location on DANA (NB! change if used on another location)
+export fun_path=$script_path/functions 													# Folder with subfunctions
 echo $script_path 																		#[!!!]
-cd $data_path
-cd $project/MEG
+cd $data_path/$project/MEG
 
 #############################################################################################################################################################################################################################################################
 ## Abort if project folder doesn't exist and check if tran and pos folders exist
@@ -210,7 +211,9 @@ do
 	#Look for correct files
 	run_trans= 						# Intitate variable
 	for condition in ${trans_conditions[*]}; do
-		confiles=$(find ./*$condition* 2> /dev/null)
+		arr=( $( python $fun_path/find_condition_files.py ./ $condition | tr -d '[],' ) )
+		confiles=( "${arr[@]:1}" ) #removed the 1st element
+#		confiles=$(find ./*$condition* 2> /dev/null)
 		if [[ ! -z $confiles ]]; then
 			run_trans="yes"
 			echo "Found files to transform for condition '$condition':"
@@ -226,6 +229,9 @@ do
 			echo "quat folder '$quat_folder' does not exist. Will make one for $subject_and_date"
 			mkdir $quat_folder 		
 			mkdir $headpos_folder
+			if [[ ! -d $quat_folder/log ]]; then
+				mkdir $quat_folder/log
+			fi
 		fi
 	
 	
@@ -240,16 +246,17 @@ do
 			for condition in ${trans_conditions[*]}
 			do
 
-				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )
-				echo $condition_files
+#				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )				
+				arr=($(python $fun_path/find_condition_files.py ./ $condition | tr -d '[],'))
+				condition_files=("${arr[@]:1}") #removed the 1st element
+#				echo $condition_files
 
 				if [[ -z "$condition_files" ]]; then
 					echo "No files for condition $condition"
 					continue
 				fi
 
-				echo "Will use the $trans_type of the CONTINOUS head position"
-				for fname in ${condition_files[@]}
+				echo "Will use the $trans_type of the CONTINOUS head position"				for fname in ${condition_files[@]}
 				do
 					if [[ ! -f $fname ]]; then
 						continue
@@ -267,7 +274,7 @@ do
 						echo -----------------------------------------------------------------------------------
 
 						# Run maxfilter
-						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit
+						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit | tee -a ./$quat_folder/log/${quat_fname:0:$length}.log
 #						echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
@@ -276,7 +283,7 @@ do
 				done
 			
 				### MAKE AVERAGE HEADPOS
-				ipython $script_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
+				ipython $fun_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
 #				echo "would run Py script here..."
 			done
 		
@@ -291,11 +298,15 @@ do
 ############################################################################################################################################################################################################
 	## loop over files in subject folders
 ##############################################################################################################################################################################################################
+<<<<<<< HEAD
 #	for filename in `ls -p | grep -v / `;
 #	list=$(find ./*.fif 2> /dev/null)
 #	echo $list
+	# FIND ONLY FIRST FIF FILE
+	tmplst=($(python $fun_path/find_condition_files.py ./ '.fif' | tr -d '[],'))
+	filelist=("${tmplst[@]:1}") #removed the 1st element
 	
-	for filename in `ls -p | grep -v / `   #$(find ./*'.fif' 2> /dev/null)
+	for filename in ${filelist[@]}    #`ls -p | grep -v / `   #$(find ./*'.fif' 2> /dev/null)
 	do
 	
 		echo -------------------------------------------------------------

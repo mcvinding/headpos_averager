@@ -28,8 +28,7 @@ if found_mne:
     from mne.io import read_raw_fif, Raw
 #    from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
     from mne.transforms import rotation_angles, rotation3d, write_trans, quat_to_rot
-    from mne.viz import plot_head_positions, plot_alignment
-
+    # from mne.viz import plot_head_positions, plot_alignment
 else:
     print('mne is not present')
     sys.exit()
@@ -62,9 +61,9 @@ def contAvg_headpos(condition, method='median', folder=[], summary=True):
     MNE-Python transform object
         4x4 transformation matrix
     """
-
     # Check that the method works
     method = method.lower()
+
     if method not in ['median','mean']:
         raise RuntimeError('Wrong method. Must be either \"mean\" or "median"!')
     if not condition:
@@ -87,7 +86,7 @@ def contAvg_headpos(condition, method='median', folder=[], summary=True):
     if op.isfile(mean_trans_file):
         warnings.warn('N"%s\" already exists is %s. Delete if you want to rerun' % (mean_trans_file, mean_trans_folder), RuntimeWarning)
         return
-    
+
     # Change to subject dir     
     files2combine = [f for f in listdir(quatdir) if condition in f and '_quat' in f]
     
@@ -109,7 +108,7 @@ def contAvg_headpos(condition, method='median', folder=[], summary=True):
         
     quat, times = raw.get_data(return_times=True)
     gof = quat[6,]                                              # Godness of fit channel
-    fs = raw.info['sfreq']
+    # fs = raw.info['sfreq']
     
     # In case "record raw" started before "cHPI"
     if np.any(gof < 0.98):
@@ -281,8 +280,8 @@ else:
     rawdir = sys.argv[3]                # Third argument = directory
     method = str(sys.argv[4])           # Fourth argument = average method
 
-print "AVERAGE TYOE = "+avgType
-print "METHOD = "+method
+print("AVERAGE TYOE = "+avgType)
+print("METHOD = "+method)
 
 if 'continous' in avgType:
     if not method:
