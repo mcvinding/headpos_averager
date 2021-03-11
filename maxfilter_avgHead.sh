@@ -10,7 +10,7 @@
 ## 3) Save transformation in -trans file
 ## 4) Run MaxFilter with correct settings (tSSS, movecomp, etc.) and transform to average headpos.
 ##
-## (c) Mikkel C. Vinding and Lau M. Andersen (2016-2018)
+## (c) Mikkel C. Vinding and Lau M. Andersen (2016-2021)
 ##
 ## No warraty guarateed. This is a wrapper for calling Neuromag MaxFilter within the NatMEG (www.natmeg.se) infrastructure. Neuromag MaxFilter is 
 ## a comercial software. For reference read the MaxFilter Manual.
@@ -23,8 +23,8 @@
 #############################################################################################################################################################################################################################################################
 
 ## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
-project=Your_Project_Name    			# The name of your project in /neuro/data/sinuhe
-trans_conditions=( 'task1' 'task2' ) 			# Name(s) of condition(s) on which head position correction should be applied
+project=your_project_name    			# The name of your project in /neuro/data/sinuhe
+trans_conditions=( 'task1' 'task2' ) 		# Name(s) of condition(s) on which head position correction should be applied
 trans_option=continous 				# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files?
 trans_type=median 				# mean/median, method to estimate "average" head position (only for trans_option=continous).
 
@@ -34,6 +34,7 @@ sss_files=( 'only_apply_sss_to_this_file.fif' ) 	# put the names of files you on
 
 ## STEP 3: Select MaxFilter options.
 autobad=on 					# Options: on/off
+badlimit=7 					# Detection rate for autobad. Default=7.
 tsss_default=on 				# on/off (if off does Signal Space Separation, if on does temporal Signal Space Separation)
 correlation=0.98 				# tSSS correlation rejection limit (default is 0.98)
 movecomp_default=on 				# on/off, do movement compensation?
@@ -66,10 +67,11 @@ trans_folder=trans_files        # name of folder where average transformation fi
 #############################################################################################################################################################################################################################################################
 #############################################################################################################################################################################################################################################################
 
-export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
+#export script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"			#Change depending on which computer is used!
+export script_path=/home/natmeg/data_scripts/avg_headpos 							# Correct location on DANA (NB! change if used on another location)
+export fun_path=$script_path/functions 													# Folder with subfunctions
 echo $script_path 																		#[!!!]
-cd $data_path
-cd $project/MEG
+cd $data_path/$project/MEG
 
 #############################################################################################################################################################################################################################################################
 ## Abort if project folder doesn't exist and check if tran and pos folders exist
@@ -208,7 +210,9 @@ do
 	#Look for correct files
 	run_trans= 						# Intitate variable
 	for condition in ${trans_conditions[*]}; do
-		confiles=$(find ./*$condition* 2> /dev/null)
+		arr=( $( python $fun_path/find_condition_files.py ./ $condition | tr -d '[],' ) )
+		confiles=( "${arr[@]:1}" ) #removed the 1st element
+#		confiles=$(find ./*$condition* 2> /dev/null)
 		if [[ ! -z $confiles ]]; then
 			run_trans="yes"
 			echo "Found files to transform for condition '$condition':"
@@ -224,6 +228,9 @@ do
 			echo "quat folder '$quat_folder' does not exist. Will make one for $subject_and_date"
 			mkdir $quat_folder 		
 			mkdir $headpos_folder
+			if [[ ! -d $quat_folder/log ]]; then
+				mkdir $quat_folder/log
+			fi
 		fi
 	
 	
@@ -238,25 +245,35 @@ do
 			for condition in ${trans_conditions[*]}
 			do
 
-				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )
+#				condition_files=$( find ./*$condition* -type f -execdir basename {} ./ ';' )    # -print | grep $condition*) )				
+				arr=($(python $fun_path/find_condition_files.py ./ $condition | tr -d '[],'))
+				condition_files=("${arr[@]:1}") #removed the 1st element
 #				echo $condition_files
-				echo "Will use the $trans_option of the CONTINOUS head position"
-				for fname in ${condition_files[@]}
-				do
 
-					length=${#fname}-4  ## the indices that we want from $file (everything except ".fif")
+				if [[ -z "$condition_files" ]]; then
+					echo "No files for condition $condition"
+					continue
+				fi
+
+				echo "Will use the $trans_type of the CONTINOUS head position"				for fname in ${condition_files[@]}
+				do
+					if [[ ! -f $fname ]]; then
+						continue
+					fi
+						
+					length=${#fname}-4  								# the indices that we want from $file (everything except ".fif")
 					pos_fname=${fname:0:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
 					quat_fname=${fname:0:$length}_quat.fif 	# the name of the quat output file
 					quat_fpath="./$quat_folder/$quat_fname"
 				
-					if [ -f .$quat_fpath ]; then
+					if [ ! -f $quat_fpath ]; then
 					
 						echo -----------------------------------------------------------------------------------
 						echo "Now running initiat MaxFilter on $fname to get continous head position"
 						echo -----------------------------------------------------------------------------------
 
 						# Run maxfilter
-						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad
+						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit | tee -a ./$quat_folder/log/${quat_fname:0:$length}.log
 #						echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
@@ -265,7 +282,7 @@ do
 				done
 			
 				### MAKE AVERAGE HEADPOS
-				ipython $script_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
+				ipython $fun_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
 #				echo "would run Py script here..."
 			done
 		
@@ -283,15 +300,18 @@ do
 #	for filename in `ls -p | grep -v / `;
 #	list=$(find ./*.fif 2> /dev/null)
 #	echo $list
+	# FIND ONLY FIRST FIF FILE
+	tmplst=($(python $fun_path/find_condition_files.py ./ '.fif' | tr -d '[],'))
+	filelist=("${tmplst[@]:1}") #removed the 1st element
 	
-	for filename in $(find ./*'.fif' 2> /dev/null)
+	for filename in ${filelist[@]}    #`ls -p | grep -v / `   #$(find ./*'.fif' 2> /dev/null)
 	do
 	
 		echo -------------------------------------------------------------
 		echo "		Now processing file $filename"
 		echo -------------------------------------------------------------
 	
-		if [[ ! "$filename" == *".fif" ]]; then
+		if [[ ! "$filename" == *".fif"* ]]; then
 			echo "$filename not a fif file"
 			continue
 		fi
@@ -345,7 +365,7 @@ do
 
 			if [[ -z $trans_fname ]]; then
 				echo "No -trans files in folder $(pwd)/$trans_fname with name $prefix"
-				exit 1
+				continue
 			fi
 
 			trans="-trans ${trans_fname}"
@@ -381,13 +401,15 @@ do
 		## output arguments 		############################################################################################################################################################################################################################################
 		length=${#filename}-4  ## the indices that we want from $file (everything except ".fif")
 
-		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation}.fif   ## !This does not conform to MNE naming conventions
-
+		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.fif   ## !This does not conform to MNE naming conventions
+		output_log=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.log
+		echo "Output is: $output_file"
+		
 ############################################################################################################################################################################################################################################
 		## the actual maxfilter commands 
 ############################################################################################################################################################################################################
 		
-		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
+		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -badlimit $badlimit -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
 #		echo "Would run MaxF here!"
 		echo "Output is: $output_file"
 	done
