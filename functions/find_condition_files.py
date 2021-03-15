@@ -12,6 +12,7 @@ def find_condition_files(folder, string):
 
     allfiles = listdir(folder)
     strfiles = [f for f in allfiles if string in f and f.find('-') == -1 and not 'sss' in f]
+    strfiles.sort()
 
     # return strfiles
     print(strfiles) #, sep = " ")  
