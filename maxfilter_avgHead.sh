@@ -22,8 +22,8 @@
 #############################################################################################################################################################################################################################################################
 
 ## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
-project=your_project_name    			# The name of your project in /neuro/data/sinuhe
-trans_conditions=( 'task1' 'task2' ) 		# Name(s) of condition(s) on which head position correction should be applied
+project=maxfilter_test    			# The name of your project in /neuro/data/sinuhe
+trans_conditions=( 'nback' ) 		# Name(s) of condition(s) on which head position correction should be applied
 trans_option=continous 				# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files?
 trans_type=median 				# mean/median, method to estimate "average" head position (only for trans_option=continous).
 
@@ -264,17 +264,18 @@ do
 					pos_fname=${fname:1:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
 					quat_fname=${fname:1:$length}_quat.fif 		# the name of the quat output file
 #					echo $quat_fname
-					quat_fpath="./$quat_folder/$quat_fname"
-#					echo $quat_fpath
+#					quat_fpath="./$quat_folder/$quat_fname"
+					echo $(pwd)
+echo /$quat_folder/$quat_fname
 
-					if [ ! -f quat_fpath ]; then
+					if [[ ! -f ./$quat_folder/$quat_fname ]]; then
 					
 						echo -----------------------------------------------------------------------------------
 						echo "Now running initiat MaxFilter on ${fname:1:$length} to get continous head position"
 						echo -----------------------------------------------------------------------------------
 
 						# Run maxfilter
-						/neuro/bin/util/maxfilter -f ${fname} -o ./$quat_folder/$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit | tee -a ./$quat_folder/log/${quat_fname:0:$length}.log
+						/neuro/bin/util/maxfilter -f ./${fname} -o ./$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit | tee -a ./log/${quat_fname:0:$length}.log
 #					echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
@@ -283,9 +284,15 @@ do
 				done
 			
 				### MAKE AVERAGE HEADPOS
-			ipython $fun_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
+				#Test: cleanup after head pos estimation
+				find . -maxdepth 1 -type f -name '*quat*' -exec mv {} ./$quat_folder/ \; 			# Move to quat folder
+	
+				ipython $fun_path/avg_headpos.py $trans_option $condition $(pwd) $trans_type 
 #				echo "would run Py script here..."
 			done
+
+
+
 		
 		else
 			echo "Option 'trans_option' must be 'continous' or 'initial'. You wrote: $trans_option"
