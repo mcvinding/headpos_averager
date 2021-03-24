@@ -276,8 +276,7 @@ do
 						# Run maxfilter
 						/neuro/bin/util/maxfilter -f ./${fname} -o ./$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit | tee -a ./$quat_folder/log/${quat_fname:0:$len2}.log
 
-					echo "Would run initial MaxF here"
-					echo "Log is: /$quat_folder/log/${quat_fname:0:-4}.log"
+#						echo "Would run initial MaxF here"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
 						continue
