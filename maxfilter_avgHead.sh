@@ -22,14 +22,14 @@
 #############################################################################################################################################################################################################################################################
 
 ## STEP 1: On which conditions should average headposition be done (consistent naming is mandatory!)?
-project=maxfilter_test    			# The name of your project in /neuro/data/sinuhe
-trans_conditions=( 'nback' ) 		# Name(s) of condition(s) on which head position correction should be applied
+project=your_project_name    			# The name of your project in /neuro/data/sinuhe
+trans_conditions=( 'task1' 'task2' ) 		# Name(s) of condition(s) on which head position correction should be applied
 trans_option=continous 				# continous/initial, how to estimate average head position: From INITIAL head fit across files, or from CONTINOUS head position estimation within (and across) files, e.g. split files?
 trans_type=median 				# mean/median, method to estimate "average" head position (only for trans_option=continous).
 
 ## STEP 2: Put the names of your empty room files (files in this array won't have "movecomp" applied) (no commas between files and leave spaces between first and last brackets)
-empty_room_files=( 'empty_room_before.fif' 'empty_room_after.fif' )
-sss_files=( 'only_apply_sss_to_this_file.fif' ) 	# put the names of files you only want SSS on (can be used if want SSS on a subset of files, but tSSS on the rest)
+empty_room_files=( 'empty_room_before.fif' 'empty_room_after.fif' )   	# Name of empty room files
+sss_files=( 'only_apply_sss_to_this_file.fif' ) 			# put the names of files you only want SSS on (can be used if want SSS on a subset of files, but tSSS on the rest)
 
 ## STEP 3: Select MaxFilter options.
 autobad=on 					# Options: on/off
@@ -225,10 +225,10 @@ do
 		## create file directory for quad files if it doesn't already exist
 		if [[ ! -d $quat_folder ]]; then
 			echo "quat folder '$quat_folder' does not exist. Will make one for $subject_and_date"
-			mkdir $quat_folder 		
-			mkdir $headpos_folder
+			mkdir ./$quat_folder 		
+			mkdir ./$headpos_folder
 			if [[ ! -d $quat_folder/log ]]; then
-				mkdir $quat_folder/log
+				mkdir ./$quat_folder/log
 			fi
 		fi
 	
@@ -263,10 +263,9 @@ do
 					length=${#fname}-6 				# the indices that we want from $file (everything except ".fif")
 					pos_fname=${fname:1:$length}_headpos.pos 	# the name of the text output file with movement quaternions (not used for anything)
 					quat_fname=${fname:1:$length}_quat.fif 		# the name of the quat output file
-#					echo $quat_fname
-#					quat_fpath="./$quat_folder/$quat_fname"
-					echo $(pwd)
-echo /$quat_folder/$quat_fname
+					len2=${#quat_fname}-4
+#					echo "/$quat_folder/$quat_fname"
+#					echo "/$quat_folder/log/${quat_fname:0:$len2}.log"
 
 					if [[ ! -f ./$quat_folder/$quat_fname ]]; then
 					
@@ -275,8 +274,10 @@ echo /$quat_folder/$quat_fname
 						echo -----------------------------------------------------------------------------------
 
 						# Run maxfilter
-						/neuro/bin/util/maxfilter -f ./${fname} -o ./$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit | tee -a ./log/${quat_fname:0:$length}.log
-#					echo "Would run initial MaxF here"
+						/neuro/bin/util/maxfilter -f ./${fname} -o ./$quat_fname $ds -headpos -hp ./$headpos_folder/$pos_fname -autobad $autobad -badlimit $badlimit | tee -a ./$quat_folder/log/${quat_fname:0:$len2}.log
+
+					echo "Would run initial MaxF here"
+					echo "Log is: /$quat_folder/log/${quat_fname:0:-4}.log"
 					else
 						echo "File $quat_fname already exists. If you want to run head position estimation again you must delete the old files!"
 						continue
@@ -310,17 +311,22 @@ echo /$quat_folder/$quat_fname
 #	echo $list
 
 	# FIND ONLY FIRST FIF FILE
-	tmplst=($(python $fun_path/find_condition_files.py ./ '.fif' | tr -d '[],'))
+	tmplst=($(python $fun_path/find_condition_files.py ./ '.fif' | tr -d '[''],'))
 	filelist=("${tmplst[@]:1}") #removed the 1st element
 
 	echo "Found files: ${filelist[@]}"
 	
-	for filename in ${filelist[@]}    #`ls -p | grep -v / `   #$(find ./*'.fif' 2> /dev/null)
+	for listfile in ${filelist[@]}    #`ls -p | grep -v / `   #$(find ./*'.fif' 2> /dev/null)
 	do
-	
+		# Fix names from Python
+		lenx=${#listfile}-2
+		filename=${listfile:1:lenx}
 		echo -------------------------------------------------------------
 		echo "		Now processing file $filename"
 		echo -------------------------------------------------------------
+
+
+
 	
 		if [[ ! "$filename" == *".fif"* ]]; then
 			echo "$filename not a fif file"
@@ -353,6 +359,8 @@ echo /$quat_folder/$quat_fname
 				fi
 		fi
 
+#		echo "Movecomp = $movecomp"
+
 ############################################################################################################################################################################################################################################
 		## check whether file is in the average head pos array and change trans argument
 ############################################################################################################################################################################################################################################
@@ -379,8 +387,8 @@ echo /$quat_folder/$quat_fname
 
 			trans="-trans ${trans_fname}"
 			trans_string=_avgtrans
-			echo "Trans is: $trans_fname"
-			echo $trans
+#			echo "Trans is: $trans_fname"
+#			echo $trans
 		else
 			trans=
 			trans_string=					
@@ -408,26 +416,33 @@ echo /$quat_folder/$quat_fname
 
 ############################################################################################################################################################################################################################################
 		## output arguments 		############################################################################################################################################################################################################################################
-		length=${#filename}-6 		## the indices that we want from $file (everything except ".fif")
+		length=${#filename}-4 		## the indices that we want from $file (everything except ".fif")
 
-		output_file=${filename:1:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.fif   ## !This does not conform to MNE naming conventions
-		output_log=${filename:1:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.log
-		echo "Output is: $output_file"
+		output_file=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.fif   ## !This does not conform to MNE naming conventions
+		output_log=${filename:0:$length}${movecomp_string}${trans_string}${linefreq_string}${ds_string}${tsss_string}_corr${correlation: -2}.log
+#		echo "Input file is $filename"
+#		echo "Output is: $output_file"
+#		echo "Log file is $output_log"
+
+		if [[ -f $output_file ]]; then
+			echo "File $output_file already exist. Delete it to run again"
+			continue
+		fi
 		
 ############################################################################################################################################################################################################################################
 		## the actual maxfilter commands 
-############################################################################################################################################################################################################
-		
-		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -badlimit $badlimit -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${filename:0:$length}${tsss_string}${movecomp_string}${trans_string}${linefreq_string}${ds_string}.log
+############################################################################################################################################################################################################################################
+		/neuro/bin/util/maxfilter -f ${filename} -o ${output_file} $force $tsss $ds -corr $correlation $movecomp $trans -autobad $autobad -badlimit $badlimit -cal $cal -ctc $ctc -v $headpos $linefreq | tee -a ./log/${output_log}
 #		echo "Would run MaxF here!"
 	done
 
-####################################################################################################################################################################################################################################################
+############################################################################################################################################################################################################################################
 ## file loop ends 
-##################################################################################################################################################################################################################################
+############################################################################################################################################################################################################################################
 
 done
 
-############################################################################################################################################################################################################################################################
+############################################################################################################################################################################################################################################
 ## subjects loop ends 
-######################################################################################################################################################################################################################################
+############################################################################################################################################################################################################################################
+# END
