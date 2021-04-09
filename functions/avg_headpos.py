@@ -14,6 +14,7 @@ import numpy as np
 import glob
 import warnings
 import imp
+import re
 import os.path as op
 #import matplotlib.pyplot as plt
 from os import listdir, mkdir, path, getcwd, environ
@@ -36,12 +37,25 @@ else:
 #A ppend toolbox dir
 sys.path.append(environ["script_path"])
 from summary_funs import total_dist_moved, plot_movement
+# from find_condition_files import find_condition_files
 
 ###############################################################################
 ## MAKE FUNCTIONS
 ###############################################################################
+#%%
+def find_condition_files(folder, string):
+
+    allfiles = listdir(folder)
+    strfiles = [f for f in allfiles if string in f and f.find('-') == -1 and not 'sss' in f]
+    strfiles.sort()
+
+    # return strfiles
+    # print(strfiles) #, sep = " ")  
+    return strfiles
+
+
 #%% averager for continous head postion
-def contAvg_headpos(condition, method='median', folder=[], summary=True):
+def contAvg_headpos(condition, method='median', folder=[], summary=False):
     """
     Calculate average transformation from dewar to head coordinates, based 
     on the continous head position estimated from MaxFilter
@@ -88,23 +102,39 @@ def contAvg_headpos(condition, method='median', folder=[], summary=True):
         return
 
     # Change to subject dir     
-    files2combine = [f for f in listdir(quatdir) if condition in f and '_quat' in f]
-    
+    files2combine = find_condition_files(quatdir, condition)     
+    files2combine.sort()
+ 
+    allfiles = []
+    for ff in files2combine:
+        fl = ff.split('_')[0]
+        tmplist = [f for f in listdir(quatdir) if fl in f and '_quat' in f]
+        
+        #Fix order
+        if len(tmplist) > 1:
+            tmplist.sort()
+            firstfile = tmplist[-1]  # The file without a number will always be last!  
+            tmpfs = sorted(tmplist[:-1], key=lambda a: int(re.split('-|.fif', a)[-2]) )  # Assuming consistent naming!!!
+            tmplist[0] = firstfile
+            tmplist[1:] = tmpfs
+            allfiles = allfiles + tmplist
+        
     if not files2combine:
         raise RuntimeError('No files called \"%s\" found in %s' % (condition, quatdir))
-    elif len(files2combine) > 1:
+    elif len(allfiles) > 1:
         print('Files used for average head pos:')    
-        for ib in range(len(files2combine)):
-            print('{:d}: {:s}'.format(ib + 1, files2combine[ib]))
+        for ib in range(len(allfiles)):
+            print('{:d}: {:s}'.format(ib + 1, allfiles[ib]))
     else:
         print('Will find average head pos in %s' % files2combine)    
     
     # LOAD DATA
+    # raw = read_raw_fif(op.join(quatdir,firstfile), preload=True, allow_maxshield=True, verbose=False).pick_types(meg=False, chpi=True)
     for idx, ffs in enumerate(files2combine):
         if idx == 0:
-            raw =  read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
+            raw = read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True)
         else:
-            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True))
+            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True))
         
     quat, times = raw.get_data(return_times=True)
     gof = quat[6,]                                              # Godness of fit channel
@@ -119,8 +149,9 @@ def contAvg_headpos(condition, method='median', folder=[], summary=True):
         times = times[begsam:].copy()
         
     # Make summaries
-    plot_movement(quat, times, dirname=rawdir, identifier=condition)
-    total_dist_moved(quat, times, write=True, dirname=rawdir, identifier=condition)
+    if summary:
+        plot_movement(quat, times, dirname=rawdir, identifier=condition)
+        total_dist_moved(quat, times, write=True, dirname=rawdir, identifier=condition)
     
     # Get continous transformation    
     print('Reading transformation. This will take a while...')

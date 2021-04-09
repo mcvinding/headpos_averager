@@ -16,6 +16,7 @@ def find_condition_files(folder, string):
 
     # return strfiles
     print(strfiles) #, sep = " ")  
+    # return strfiles
 
 #%% Run
 print(len(sys.argv))
