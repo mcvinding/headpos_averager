@@ -42,17 +42,12 @@ from summary_funs import total_dist_moved, plot_movement
 ###############################################################################
 ## MAKE FUNCTIONS
 ###############################################################################
-#%%
+#%% Find files
 def find_condition_files(folder, string):
-
     allfiles = listdir(folder)
-    strfiles = [f for f in allfiles if string in f and f.find('-') == -1 and not 'sss' in f]
+    strfiles = [f for f in allfiles if string in f and f.find('-') == -1 and not 'sss' in f and not '_avg' in f]
     strfiles.sort()
-
-    # return strfiles
-    # print(strfiles) #, sep = " ")  
     return strfiles
-
 
 #%% averager for continous head postion
 def contAvg_headpos(condition, method='median', folder=[], summary=False):
@@ -113,10 +108,11 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
         #Fix order
         if len(tmplist) > 1:
             tmplist.sort()
-            firstfile = tmplist[-1]  # The file without a number will always be last!  
-            tmpfs = sorted(tmplist[:-1], key=lambda a: int(re.split('-|.fif', a)[-2]) )  # Assuming consistent naming!!!
-            tmplist[0] = firstfile
-            tmplist[1:] = tmpfs
+	    if '-' in tmplist:
+                firstfile = tmplist[-1]  # The file without a number will always be last!  
+            	tmpfs = sorted(tmplist[:-1], key=lambda a: int(re.split('-|.fif', a)[-2]) )  # Assuming consistent naming!!!
+            	tmplist[0] = firstfile
+            	tmplist[1:] = tmpfs
             allfiles = allfiles + tmplist
         
     if not files2combine:
@@ -132,9 +128,9 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
     # raw = read_raw_fif(op.join(quatdir,firstfile), preload=True, allow_maxshield=True, verbose=False).pick_types(meg=False, chpi=True)
     for idx, ffs in enumerate(files2combine):
         if idx == 0:
-            raw = read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True)
+            raw = read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
         else:
-            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True))
+            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True))
         
     quat, times = raw.get_data(return_times=True)
     gof = quat[6,]                                              # Godness of fit channel
