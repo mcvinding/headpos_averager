@@ -5,7 +5,7 @@ Functions for creating average head positions of continous head position estimat
 by MaxFilter head position estimator on one or several files
 files to feed to MaxFilter.
 
-@author: mikkel vinding, 2017 (mikkel.vinding@ki.se)
+@author: mikkel vinding, 2017 (mikkel.vinding@ki.se), made from code courtesy of Chris Bailey, Aarhus University.
 """
 
 #%% IMPORTS
@@ -99,7 +99,10 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
     # Change to subject dir     
     files2combine = find_condition_files(quatdir, condition)     
     files2combine.sort()
- 
+    
+    if not files2combine:
+        raise RuntimeError('No files called \"%s\" found in %s' % (condition, quatdir))
+        
     allfiles = []
     for ff in files2combine:
         fl = ff.split('_')[0]
@@ -108,16 +111,15 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
         #Fix order
         if len(tmplist) > 1:
             tmplist.sort()
-	    if '-' in tmplist:
+            if any("-" in f for f in tmplist):
                 firstfile = tmplist[-1]  # The file without a number will always be last!  
-            	tmpfs = sorted(tmplist[:-1], key=lambda a: int(re.split('-|.fif', a)[-2]) )  # Assuming consistent naming!!!
-            	tmplist[0] = firstfile
-            	tmplist[1:] = tmpfs
-            allfiles = allfiles + tmplist
+                tmpfs = sorted(tmplist[:-1], key=lambda a: int(re.split('-|.fif', a)[-2]) )  # Assuming consistent naming!!!
+                tmplist[0] = firstfile
+                tmplist[1:] = tmpfs
+                allfiles = allfiles + tmplist
         
-    if not files2combine:
-        raise RuntimeError('No files called \"%s\" found in %s' % (condition, quatdir))
-    elif len(allfiles) > 1:
+
+    if len(allfiles) > 1:
         print('Files used for average head pos:')    
         for ib in range(len(allfiles)):
             print('{:d}: {:s}'.format(ib + 1, allfiles[ib]))
@@ -126,6 +128,7 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
     
     # LOAD DATA
     # raw = read_raw_fif(op.join(quatdir,firstfile), preload=True, allow_maxshield=True, verbose=False).pick_types(meg=False, chpi=True)
+    # Use files2combine instead of allfiles as MNE will find split files automatically.
     for idx, ffs in enumerate(files2combine):
         if idx == 0:
             raw = read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
@@ -139,7 +142,6 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
     # In case "record raw" started before "cHPI"
     if np.any(gof < 0.98):
         begsam = np.argmax(gof>0.98)
-        
         raw.crop(tmin=raw.times[begsam])
         quat = quat[:,begsam:].copy()
         times = times[begsam:].copy()
@@ -292,17 +294,17 @@ print(len(sys.argv))
 if len(sys.argv) < 3:
     raise RuntimeError('Not enough arguments given')
 if len(sys.argv) < 4:
-    avgType = str(sys.argv[1])               # First argument = method to make average
+    avgType = str(sys.argv[1])          # First argument = method to make average
     condi = sys.argv[2]                 # Second argument = condition
     rawdir = getcwd()
     method = []
 if len(sys.argv) == 4:
-    avgType = str(sys.argv[1])               # First argument = method to make average
+    avgType = str(sys.argv[1])          # First argument = method to make average
     condi = sys.argv[2]                 # Second argument = condition
     rawdir = sys.argv[3]                # Third argument = directory
     method = []
 else:
-    avgType = str(sys.argv[1])               # First argument = method to make average
+    avgType = str(sys.argv[1])          # First argument = method to make average
     condi = sys.argv[2]                 # Second argument = condition
     rawdir = sys.argv[3]                # Third argument = directory
     method = str(sys.argv[4])           # Fourth argument = average method
