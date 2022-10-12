@@ -139,9 +139,9 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
     # Use files2combine instead of allfiles as MNE will find split files automatically.
     for idx, ffs in enumerate(files2combine):
         if idx == 0:
-            raw = read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True)
+            raw = read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
         else:
-            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True))
+            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True))
         
     quat, times = raw.get_data(return_times=True)
     gof = quat[6,]                                              # Godness of fit channel
