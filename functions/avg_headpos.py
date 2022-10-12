@@ -36,7 +36,7 @@ else:
     
 #Append toolbox dir
 sys.path.append(environ["script_path"])
-from functions.summary_funs import total_dist_moved, plot_movement
+from summary_funs import total_dist_moved, plot_movement
 # from find_condition_files import find_condition_files
 
 ###############################################################################
