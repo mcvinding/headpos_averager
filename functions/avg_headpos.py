@@ -34,9 +34,9 @@ else:
     print('mne is not present')
     sys.exit()
     
-#A ppend toolbox dir
+#Append toolbox dir
 sys.path.append(environ["script_path"])
-from summary_funs import total_dist_moved, plot_movement
+from functions.summary_funs import total_dist_moved, plot_movement
 # from find_condition_files import find_condition_files
 
 ###############################################################################
@@ -48,6 +48,7 @@ def find_condition_files(folder, string):
     strfiles = [f for f in allfiles if string in f and f.find('-') == -1 and not 'sss' in f and not '_avg' in f]
     strfiles.sort()
     return strfiles
+
 
 #%% averager for continous head postion
 def contAvg_headpos(condition, method='median', folder=[], summary=False):
@@ -103,26 +104,33 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
     if not files2combine:
         raise RuntimeError('No files called \"%s\" found in %s' % (condition, quatdir))
         
-    allfiles = []
-    for ff in files2combine:
-        fl = ff.split('_')[0]
-        tmplist = [f for f in listdir(quatdir) if fl in f and '_quat' in f]
-        
-        #Fix order
-        if len(tmplist) > 1:
-            tmplist.sort()
-            if any("-" in f for f in tmplist):
-                firstfile = tmplist[-1]  # The file without a number will always be last!  
-                tmpfs = sorted(tmplist[:-1], key=lambda a: int(re.split('-|.fif', a)[-2]) )  # Assuming consistent naming!!!
-                tmplist[0] = firstfile
-                tmplist[1:] = tmpfs
-                allfiles = allfiles + tmplist
-        
+    allquats = [f for f in listdir(quatdir) if 'quat' in f]
+    allquats_beg = []
+    for fl in [f.split('quat') for f in allquats]:
+        allquats_beg.append(fl[0])
 
-    if len(allfiles) > 1:
+    # loop through unique files and add to list in correct order
+    allquats_sorted = []
+    
+    files2combine_beg = [f.split('quat')[0] for f in files2combine]
+        
+    for file in files2combine_beg:
+        tmplist = [f for f in allquats if file in f] 
+        tmplist.sort()
+        firstquat = tmplist[-1]
+        otherquats = tmplist[:-1]
+        
+        allquats_sorted.append(firstquat)
+        
+        try:
+            allquats_sorted.extend(sorted(otherquats, key=lambda a: int(re.split('-|.fif', a)[1])))
+        except(ValueError):
+            print('Check file naming ' + otherquats)
+    
+    if len(allquats_sorted) > 1:
         print('Files used for average head pos:')    
-        for ib in range(len(allfiles)):
-            print('{:d}: {:s}'.format(ib + 1, allfiles[ib]))
+        for ib in range(len(allquats_sorted)):
+            print('{:d}: {:s}'.format(ib + 1, allquats_sorted[ib]))
     else:
         print('Will find average head pos in %s' % files2combine)    
     
@@ -131,9 +139,9 @@ def contAvg_headpos(condition, method='median', folder=[], summary=False):
     # Use files2combine instead of allfiles as MNE will find split files automatically.
     for idx, ffs in enumerate(files2combine):
         if idx == 0:
-            raw = read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True)
+            raw = read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True)
         else:
-            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=True, allow_maxshield=True).pick_types(meg=False, chpi=True))
+            raw.append(read_raw_fif(op.join(quatdir,ffs), preload=False, allow_maxshield=True).pick_types(meg=False, chpi=True))
         
     quat, times = raw.get_data(return_times=True)
     gof = quat[6,]                                              # Godness of fit channel
